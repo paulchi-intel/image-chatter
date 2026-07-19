@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Chatter - Options</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #f3f4f6;
+      padding: 20px;
+      color: #1f2937;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    .section {
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 12px;
+    }
+
+    .info-box {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+      border-left: 4px solid #3b82f6;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #374151;
+      line-height: 1.6;
+    }
+
+    .features {
+      list-style: none;
+      padding: 0;
+    }
+
+    .features li {
+      padding: 8px 0;
+      color: #374151;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .features li::before {
+      content: "✓ ";
+      color: #3b82f6;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+
+    .note {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #78350f;
+      line-height: 1.6;
+    }
+
+    code {
+      background: #e5e7eb;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #111827;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Image Chatter</h1>
+    <p class="subtitle">GNAI image analysis and image generation in a Chrome side panel or popup.</p>
+
+    <div class="section">
+      <div class="section-title">Core Capabilities</div>
+      <ul class="features">
+        <li>Load an image from disk through the composer image button</li>
+        <li>Language dropdown (Traditional Chinese, Simplified Chinese, English)</li>
+        <li>Chart and slide prompts for summaries, data extraction, trends, insights, actions, and translation</li>
+        <li>Generate PNG or JPEG images with optional reference images</li>
+        <li>Verify image-capable models from the GNAI documentation</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="section-title">How To Use</div>
+      <ol style="padding-left: 20px; color: #374151; font-size: 14px; line-height: 1.8;">
+        <li>Open the extension and enter a GNAI API key.</li>
+        <li>In <strong>Analyze</strong>, load an image and use a quick prompt or enter a question.</li>
+        <li>In <strong>Generate</strong>, enter a prompt, choose size, quality, and format, then optionally add references.</li>
+        <li>Choose <strong>Verify image analysis/generation models</strong> from the model selector to refresh capabilities.</li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <div class="info-box">
+        Image Chatter supports GNAI API keys only. ExpertGPT <code>pak_</code> keys are rejected.
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="note">
+        <strong>Note:</strong> Existing key/model/chat states are stored in <code>chrome.storage.local</code>.
+      </div>
+    </div>
+  </div>
+</body>
+</html>

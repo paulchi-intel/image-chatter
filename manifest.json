@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Image Chatter",
+  "version": "1.0.0",
+  "description": "GNAI image analysis for charts and slides, plus image generation with reference images.",
+  "permissions": [
+    "storage",
+    "tabs",
+    "sidePanel",
+    "windows",
+    "downloads"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "https://gnai.intel.com/*",
+    "https://gpusw-docs.intel.com/*"
+  ],
+  "action": {
+    "default_title": "Image Chatter"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  }
+}
