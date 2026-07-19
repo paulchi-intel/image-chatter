@@ -1,0 +1,188 @@
+{
+  "style_name": "Intel-Inspired Premium Data Visualization",
+  "version": "1.0",
+  "description": "A reusable visual style guide for premium corporate infographics inspired by Intel brand thinking: clean engineering precision, blue-led trust, subtle technology cues, calm whitespace, and glass-like modern data visualization.",
+  "brand_thinking": {
+    "keywords": [
+      "precise",
+      "engineering-driven",
+      "trustworthy",
+      "clean",
+      "modern",
+      "enterprise-grade",
+      "technology-forward",
+      "calm confidence"
+    ],
+    "visual_principle": "Make data feel reliable, structured, and quietly advanced. Avoid decorative excess; use clarity, hierarchy, and subtle blue accents to communicate technical credibility.",
+    "avoid": [
+      "over-saturated rainbow colors",
+      "heavy 3D effects",
+      "busy backgrounds",
+      "clip-art style icons",
+      "too many labels inside the chart",
+      "thick outlines",
+      "consumer-style playful colors"
+    ]
+  },
+  "canvas": {
+    "aspect_ratio": "1:1 or 16:9",
+    "background": {
+      "type": "soft gradient",
+      "colors": [
+        "#F5F8FB",
+        "#EAF0F6",
+        "#FFFFFF"
+      ],
+      "texture": "very subtle paper grain or soft matte surface",
+      "corner_radius": "large, 24-40px if used as a card"
+    },
+    "spacing": {
+      "outer_margin": "generous",
+      "layout_density": "low to medium",
+      "preferred_alignment": "left chart, right legend"
+    }
+  },
+  "color_palette": {
+    "primary_intel_blue": "#0068B5",
+    "deep_navy": "#00285A",
+    "soft_blue": "#7FB7E6",
+    "mist_blue": "#DCEAF6",
+    "steel_gray": "#8FA1B3",
+    "cool_gray": "#D6DEE7",
+    "muted_teal": "#7FAEB5",
+    "graphite_text": "#233142",
+    "secondary_text": "#6B7785",
+    "divider": "#D7DEE6",
+    "white": "#FFFFFF"
+  },
+  "chart_style": {
+    "type": "donut chart preferred over pie chart",
+    "material": "frosted glass / translucent segments",
+    "segment_opacity": "80-92%",
+    "segment_gap": "2-4px white or pale blue separator",
+    "outer_border": "thin, subtle, semi-transparent",
+    "shadow": {
+      "type": "soft ambient shadow",
+      "blur": "high",
+      "opacity": "low"
+    },
+    "highlight": {
+      "use": true,
+      "style": "small blue glow nodes at segment boundaries",
+      "color": "#1E90FF",
+      "opacity": "subtle"
+    },
+    "center_label": {
+      "title": "Issue Distribution",
+      "subtitle": "47 cases",
+      "style": "simple, centered, navy text",
+      "decorative_line": "short Intel-blue dash"
+    }
+  },
+  "data_mapping": {
+    "Noise": {
+      "count": 11,
+      "percentage": 23,
+      "color": "#B9D8F2",
+      "icon": "minimal sound wave line icon"
+    },
+    "Intel Issue": {
+      "count": 8,
+      "percentage": 17,
+      "color": "#2F7FD3",
+      "icon": "minimal chip line icon"
+    },
+    "Customer": {
+      "count": 12,
+      "percentage": 26,
+      "color": "#7FAEB5",
+      "icon": "minimal user outline icon"
+    },
+    "3rd Party": {
+      "count": 16,
+      "percentage": 34,
+      "color": "#8FA1B3",
+      "icon": "minimal group outline icon"
+    }
+  },
+  "typography": {
+    "font_family_priority": [
+      "Intel Clear",
+      "SF Pro Display",
+      "Inter",
+      "Manrope",
+      "Arial"
+    ],
+    "title": {
+      "weight": 600,
+      "size": "28-36px",
+      "color": "#00285A",
+      "letter_spacing": "-0.02em"
+    },
+    "percentage": {
+      "weight": 600,
+      "size": "36-52px",
+      "color": "#0068B5"
+    },
+    "label": {
+      "weight": 500,
+      "size": "18-24px",
+      "color": "#233142"
+    },
+    "small_text": {
+      "weight": 400,
+      "size": "13-16px",
+      "color": "#6B7785"
+    },
+    "uppercase_caption": {
+      "weight": 500,
+      "size": "12-14px",
+      "letter_spacing": "0.18em",
+      "color": "#6B7785"
+    }
+  },
+  "layout": {
+    "recommended_structure": {
+      "top_left": "small Intel logo or Intel-style wordmark area",
+      "top_right": "small uppercase section title with blue square marker",
+      "main_left": "large donut chart",
+      "main_right": "vertical legend with icon, label, percentage, count",
+      "bottom": "short update note or data source line"
+    },
+    "legend": {
+      "style": "clean vertical cards or rows",
+      "divider": "thin pale gray lines",
+      "icon_container": "light circular outline, low opacity",
+      "percentage_color": "Intel blue",
+      "count_alignment": "right aligned"
+    }
+  },
+  "iconography": {
+    "style": "thin outline icons",
+    "stroke_width": "1.5-2px",
+    "color": "#0068B5",
+    "background": "very light circular glass container",
+    "avoid": "filled cartoon icons or colorful clipart"
+  },
+  "effects": {
+    "glassmorphism": {
+      "use": true,
+      "blur": "soft",
+      "transparency": "subtle",
+      "edge_highlight": "thin white highlight"
+    },
+    "glow": {
+      "use": "sparingly",
+      "color": "#1E90FF",
+      "placement": "segment joints or small accent dash only"
+    },
+    "grain": {
+      "use": true,
+      "amount": "very low"
+    }
+  },
+  "prompt_template": {
+    "image_generation_prompt": "Create a premium Intel-inspired corporate data visualization infographic. Use a clean blue-gray technology palette, frosted glass donut chart, subtle Intel-blue glow accents, large whitespace, precise engineering layout, and minimalist thin-line icons. Layout: small Intel-style branding area top-left, uppercase section title top-right, large donut chart on the left, structured legend on the right with category label, percentage, and case count. Background is soft light gray-blue gradient with very subtle grain. Typography is modern, clean, enterprise-grade, similar to Intel Clear / SF Pro / Inter. Avoid playful colors, heavy 3D, thick outlines, or clutter.",
+    "negative_prompt": "no rainbow colors, no Excel default chart look, no thick borders, no cartoon icons, no busy background, no heavy shadows, no messy labels, no low-end PowerPoint style"
+  }
+}

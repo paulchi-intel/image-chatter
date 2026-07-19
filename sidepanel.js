@@ -30,6 +30,7 @@ const DEFAULT_CHAT_ANALYSIS_MODE = "combined";
 const PER_IMAGE_CONCURRENCY = 2;
 const CHAT_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 const REFERENCE_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+const REFERENCE_REORDER_MIME = "application/x-image-chatter-reference";
 const ALLOWED_ANTHROPIC_MODEL_PREFIXES = [];
 
 const TRANSLATIONS = {
@@ -519,7 +520,8 @@ const IMAGE_TRANSLATIONS = {
     "image-quick-title": "快速生成", "image-template-title": "生成模板", "image-quick-help": "快速生成會直接填入提示詞；生成模板會先請你填寫主題與需求。套用後仍可繼續編輯。",
     "image-empty-title": "開始生成圖片", "image-empty-text": "在下方輸入圖片描述；也可以先加入參考圖，再使用快速生成或生成模板。",
     "image-reference-required": "請先加入參考圖；鎖定的功能需要參考圖才能使用。", "image-reference-required-tooltip": "需要先加入參考圖",
-    "image-quick-synthesize": "綜整參考圖", "image-quick-beautify": "自動美化構圖", "image-quick-variation": "產生創意變體",
+    "image-quick-synthesize": "綜整參考圖", "image-quick-beautify": "自動美化構圖", "image-quick-variation": "產生創意變體", "image-quick-intel-dataviz": "產生 Intel 風格的圖表",
+    "image-intel-dataviz-instruction": "請參考 intel-style.png，把使用者輸入的參考圖改成 Intel 風格的圖表。",
     "image-quick-scene": "保持主體換場景", "image-quick-style": "套用指定風格", "image-quick-poster": "角色／商品海報", "image-quick-silhouette": "史詩剪影海報",
     "image-saved-prompts": "生成常用提示詞", "image-saved-prompts-title": "生成常用提示詞管理",
     "image-template-hint": "填寫以下內容後，系統會組合成可繼續編輯的圖片提示詞。", "image-template-apply": "套用提示詞",
@@ -544,7 +546,8 @@ const IMAGE_TRANSLATIONS = {
     "image-quick-title": "快速生成", "image-template-title": "生成模板", "image-quick-help": "快速生成会直接填入提示词；生成模板会先请你填写主题与需求。应用后仍可继续编辑。",
     "image-empty-title": "开始生成图片", "image-empty-text": "在下方输入图片描述；也可以先加入参考图，再使用快速生成或生成模板。",
     "image-reference-required": "请先加入参考图；锁定的功能需要参考图才能使用。", "image-reference-required-tooltip": "需要先加入参考图",
-    "image-quick-synthesize": "综合参考图", "image-quick-beautify": "自动美化构图", "image-quick-variation": "生成创意变体",
+    "image-quick-synthesize": "综合参考图", "image-quick-beautify": "自动美化构图", "image-quick-variation": "生成创意变体", "image-quick-intel-dataviz": "生成 Intel 风格图表",
+    "image-intel-dataviz-instruction": "请参考 intel-style.png，将用户输入的参考图改成 Intel 风格的图表。",
     "image-quick-scene": "保持主体换场景", "image-quick-style": "应用指定风格", "image-quick-poster": "角色／商品海报", "image-quick-silhouette": "史诗剪影海报",
     "image-saved-prompts": "生成常用提示词", "image-saved-prompts-title": "生成常用提示词管理",
     "image-template-hint": "填写以下内容后，系统会组合成可继续编辑的图片提示词。", "image-template-apply": "应用提示词",
@@ -569,7 +572,8 @@ const IMAGE_TRANSLATIONS = {
     "image-quick-title": "Quick generation", "image-template-title": "Generation templates", "image-quick-help": "Quick generation inserts a prompt immediately. Generation templates ask for your subject and requirements first. You can edit the result before generating.",
     "image-empty-title": "Start generating an image", "image-empty-text": "Describe an image below, or add a reference image and use Quick generation or a Generation template.",
     "image-reference-required": "Add a reference image first. Locked features require a reference image.", "image-reference-required-tooltip": "Add a reference image first",
-    "image-quick-synthesize": "Synthesize references", "image-quick-beautify": "Polish composition", "image-quick-variation": "Create a variation",
+    "image-quick-synthesize": "Synthesize references", "image-quick-beautify": "Polish composition", "image-quick-variation": "Create a variation", "image-quick-intel-dataviz": "Create an Intel-style chart",
+    "image-intel-dataviz-instruction": "Use intel-style.png as the visual reference and transform the user-provided reference images into an Intel-style chart.",
     "image-quick-scene": "Keep subject, change scene", "image-quick-style": "Apply a visual style", "image-quick-poster": "Character / product poster", "image-quick-silhouette": "Epic silhouette poster",
     "image-saved-prompts": "Saved generation prompts", "image-saved-prompts-title": "Manage generation prompts",
     "image-template-hint": "Complete these fields to build an image prompt that you can continue editing.", "image-template-apply": "Apply prompt",
@@ -1652,6 +1656,7 @@ async function downloadDroppedImage(url) {
 
 function hasImageDropData(dataTransfer) {
   const types = Array.from(dataTransfer?.types || []);
+  if (types.includes(REFERENCE_REORDER_MIME)) return false;
   return types.includes("Files")
     || types.includes("text/html")
     || types.includes("text/uri-list");
@@ -2019,6 +2024,7 @@ function renderReferenceImages() {
     const image = document.createElement("img");
     image.src = reference.url;
     image.alt = reference.file.name;
+    image.draggable = false;
     image.tabIndex = 0;
     image.setAttribute("role", "button");
     image.title = t("open-image-tab");
@@ -2041,24 +2047,32 @@ function renderReferenceImages() {
 
     if (!imageState.busy) {
       item.addEventListener("dragstart", (event) => {
+        event.stopPropagation();
         dragReferenceId = reference.id;
         event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData(REFERENCE_REORDER_MIME, reference.id);
         event.dataTransfer.setData("text/plain", reference.id);
         item.classList.add("dragging");
       });
-      item.addEventListener("dragend", () => {
+      item.addEventListener("dragend", (event) => {
+        event.stopPropagation();
         item.classList.remove("dragging");
         UI.referenceList.querySelectorAll(".drag-over").forEach((entry) => entry.classList.remove("drag-over"));
         dragReferenceId = null;
       });
       item.addEventListener("dragover", (event) => {
         event.preventDefault();
+        event.stopPropagation();
         event.dataTransfer.dropEffect = "move";
         if (dragReferenceId && dragReferenceId !== reference.id) item.classList.add("drag-over");
       });
-      item.addEventListener("dragleave", () => item.classList.remove("drag-over"));
+      item.addEventListener("dragleave", (event) => {
+        event.stopPropagation();
+        item.classList.remove("drag-over");
+      });
       item.addEventListener("drop", async (event) => {
         event.preventDefault();
+        event.stopPropagation();
         item.classList.remove("drag-over");
         if (!dragReferenceId || dragReferenceId === reference.id) return;
         const sourceIndex = imageState.references.findIndex((entry) => entry.id === dragReferenceId);
@@ -3594,6 +3608,13 @@ const IMAGE_QUICK_TEMPLATES = [
     fields: []
   },
   {
+    id: "intel-dataviz",
+    requiresReferences: true,
+    requiresUserReferences: true,
+    icon: `<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/><path d="m3 6 6-3 6 5 6-5"/>`,
+    fields: []
+  },
+  {
     id: "scene",
     requiresReferences: true,
     icon: `<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m3 17 5-4 4 3 3-2 6 4"/>`,
@@ -3637,6 +3658,7 @@ const IMAGE_PROMPT_TEMPLATES = {
     synthesize: "綜整所有參考圖片的主題、構圖與視覺元素，生成一張完整且協調的圖片。保留各參考圖最具辨識度的特徵，避免生硬拼貼。若畫面包含文字，請使用繁體中文。",
     beautify: "以參考圖片為基礎，自動改善構圖、主體位置、視覺層級、留白、色彩平衡與光影。保留原本主體、內容與辨識特徵，修正不自然的比例、透視和畫面干擾，使結果更完整、專業且有視覺焦點。不要加入無關物件，不要改變角色或產品設定。若畫面包含文字，請使用繁體中文。",
     variation: "以參考圖片為基礎生成一個具有創意差異的新版本。保留主體身份、核心造型、主要配色與辨識特徵，重新探索姿勢、視角、構圖、光線與環境細節。新版本需明顯不同但仍忠於原始設定，比例自然、畫面完整，避免重複主體與多餘肢體。若畫面包含文字，請使用繁體中文。",
+    "intel-dataviz": "將使用者提供的參考圖片重新設計為 Intel-inspired premium corporate data visualization。使用者參考圖是唯一的資料與內容來源：精確保留其中的標題、分類、數值、百分比、單位、趨勢與資料關係，不得複製最後一張風格參考圖中的 Noise、Intel Issue、Customer、3rd Party、47 cases 或其他範例資料。最後一張參考圖只用於視覺風格。依資料類型選擇最清楚的圖表，不必強制使用圓環圖。採用精準、工程導向、可信賴、乾淨、現代且企業級的設計；使用大量留白、低至中密度、清楚層級及細線圖示。色盤限定為 Intel blue #0068B5、deep navy #00285A、soft blue #7FB7E6、mist blue #DCEAF6、steel gray #8FA1B3、cool gray #D6DEE7、muted teal #7FAEB5、graphite #233142、secondary text #6B7785、divider #D7DEE6 與 white #FFFFFF。背景使用 #F5F8FB、#EAF0F6、#FFFFFF 的柔和淺灰藍漸層與極淡霧面顆粒；可使用克制的半透明磨砂玻璃、細白邊緣高光、柔和低透明環境陰影，以及少量 #1E90FF 光點。字體呈現 Intel Clear／SF Pro／Inter 類型的現代企業質感。避免彩虹色、Excel 預設圖表、厚邊框、卡通圖示、繁忙背景、厚重 3D、凌亂標籤、重陰影與廉價 PowerPoint 模板感。所有可見文字使用繁體中文，且必須清楚、正確、可讀。",
     scene: "以參考圖片中的「{{subject}}」為主要角色，忠實保留外觀、服裝、配色、比例與辨識特徵，將場景改為「{{scene}}」，呈現「{{action}}」。讓主體自然融入新環境，統一透視、光線、陰影與色溫；不要改變角色設定，不要出現多餘肢體或重複主體。若畫面包含文字，請使用繁體中文。",
     style: "將參考圖片重新詮釋為「{{style}}」風格，營造「{{mood}}」氛圍。保留原圖主體、角色設定、關鍵造型與主要構圖，只改變繪製技法、材質、色彩、光影與視覺語言。避免改變人物身份與核心辨識特徵。若畫面包含文字，請使用繁體中文。",
     poster: "以「{{subject}}」為主視覺，參考已附加圖片忠實還原造型與細節，製作高完成度商業海報。主體清楚突出，保留適當留白與明確視覺層級，加入標題「{{headline}}」及重點「{{sellingPoints}}」。使用專業排版、統一光影與精緻材質，避免廉價模板感、雜亂背景及無關裝飾。畫面文字使用繁體中文。",
@@ -3646,6 +3668,7 @@ const IMAGE_PROMPT_TEMPLATES = {
     synthesize: "综合所有参考图片的主题、构图与视觉元素，生成一张完整且协调的图片。保留各参考图最具辨识度的特征，避免生硬拼贴。如果画面包含文字，请使用简体中文。",
     beautify: "以参考图片为基础，自动改善构图、主体位置、视觉层级、留白、色彩平衡与光影。保留原有主体、内容与辨识特征，修正不自然的比例、透视和画面干扰，使结果更完整、专业且具有视觉焦点。不要加入无关物体，不要改变角色或产品设定。如果画面包含文字，请使用简体中文。",
     variation: "以参考图片为基础生成一个具有创意差异的新版本。保留主体身份、核心造型、主要配色与辨识特征，重新探索姿势、视角、构图、光线与环境细节。新版本需明显不同但仍忠于原始设定，比例自然、画面完整，避免重复主体与多余肢体。如果画面包含文字，请使用简体中文。",
+    "intel-dataviz": "将用户提供的参考图片重新设计为 Intel-inspired premium corporate data visualization。用户参考图是唯一的数据与内容来源：精确保留其中的标题、分类、数值、百分比、单位、趋势和数据关系，不得复制最后一张风格参考图中的 Noise、Intel Issue、Customer、3rd Party、47 cases 或其他示例数据。最后一张参考图仅用于视觉风格。根据数据类型选择最清楚的图表，不必强制使用圆环图。采用精准、工程导向、可信赖、干净、现代且企业级的设计；使用大量留白、低至中密度、清楚层级及细线图标。色板限定为 Intel blue #0068B5、deep navy #00285A、soft blue #7FB7E6、mist blue #DCEAF6、steel gray #8FA1B3、cool gray #D6DEE7、muted teal #7FAEB5、graphite #233142、secondary text #6B7785、divider #D7DEE6 和 white #FFFFFF。背景使用 #F5F8FB、#EAF0F6、#FFFFFF 的柔和浅灰蓝渐变与极淡哑光颗粒；可使用克制的半透明磨砂玻璃、细白边缘高光、柔和低透明环境阴影，以及少量 #1E90FF 光点。字体呈现 Intel Clear／SF Pro／Inter 类型的现代企业质感。避免彩虹色、Excel 默认图表、粗边框、卡通图标、繁忙背景、厚重 3D、凌乱标签、重阴影和廉价 PowerPoint 模板感。所有可见文字使用简体中文，并且必须清楚、正确、可读。",
     scene: "以参考图片中的「{{subject}}」为主要角色，忠实保留外观、服装、配色、比例与辨识特征，将场景改为「{{scene}}」，呈现「{{action}}」。让主体自然融入新环境，统一透视、光线、阴影与色温；不要改变角色设定，不要出现多余肢体或重复主体。如果画面包含文字，请使用简体中文。",
     style: "将参考图片重新诠释为「{{style}}」风格，营造「{{mood}}」氛围。保留原图主体、角色设定、关键造型与主要构图，只改变绘制技法、材质、色彩、光影与视觉语言。避免改变人物身份与核心辨识特征。如果画面包含文字，请使用简体中文。",
     poster: "以「{{subject}}」为主视觉，参考已附加图片忠实还原造型与细节，制作高完成度商业海报。主体清楚突出，保留适当留白与明确视觉层级，加入标题「{{headline}}」及重点「{{sellingPoints}}」。使用专业排版、统一光影与精致材质，避免廉价模板感、杂乱背景及无关装饰。画面文字使用简体中文。",
@@ -3655,6 +3678,7 @@ const IMAGE_PROMPT_TEMPLATES = {
     synthesize: "Synthesize the subjects, composition, and visual elements from all reference images into one cohesive image. Preserve the most recognizable traits from each reference and avoid rigid collage. Use English for any visible text.",
     beautify: "Use the reference image as the foundation and automatically improve composition, subject placement, visual hierarchy, negative space, color balance, and lighting. Preserve the original subject, content, and identifying traits while correcting awkward proportions, perspective, and distractions. Make the result polished, professional, and visually focused. Do not add unrelated objects or change the character or product design. Use English for any visible text.",
     variation: "Create a distinct creative variation based on the reference image. Preserve the subject identity, core design, main colors, and recognizable traits while exploring a new pose, camera angle, composition, lighting, and environmental detail. The result should feel clearly different while remaining faithful to the source, with natural proportions and no duplicated subjects or extra limbs. Use English for any visible text.",
+    "intel-dataviz": "Redesign the user-provided reference images as an Intel-inspired premium corporate data visualization. The user references are the sole source of data and content: preserve every title, category, value, percentage, unit, trend, and data relationship accurately. Do not copy Noise, Intel Issue, Customer, 3rd Party, 47 cases, or any other sample data from the final style reference; the final reference is visual-style guidance only. Choose the clearest chart type for the source data rather than forcing a donut chart. Make the design precise, engineering-driven, trustworthy, clean, modern, and enterprise-grade, with generous whitespace, low-to-medium density, strong hierarchy, and minimalist thin-line icons. Restrict the palette to Intel blue #0068B5, deep navy #00285A, soft blue #7FB7E6, mist blue #DCEAF6, steel gray #8FA1B3, cool gray #D6DEE7, muted teal #7FAEB5, graphite #233142, secondary text #6B7785, divider #D7DEE6, and white #FFFFFF. Use a soft #F5F8FB / #EAF0F6 / #FFFFFF light gray-blue gradient with very subtle matte grain. Apply restrained translucent frosted glass, thin white edge highlights, soft low-opacity ambient shadows, and sparse #1E90FF glow nodes. Typography should feel like Intel Clear, SF Pro, or Inter. Avoid rainbow colors, default Excel charts, thick borders, cartoon icons, busy backgrounds, heavy 3D, messy labels, strong shadows, and low-end PowerPoint styling. All visible text must be clear, accurate, readable English.",
     scene: "Use “{{subject}}” from the reference image as the main subject. Faithfully preserve appearance, clothing, colors, proportions, and identifying traits, but move the subject into “{{scene}}” while showing “{{action}}”. Integrate the subject naturally by unifying perspective, lighting, shadows, and color temperature. Do not alter the character design or create duplicate subjects or extra limbs. Use English for any visible text.",
     style: "Reinterpret the reference image in a “{{style}}” visual style with a “{{mood}}” mood. Preserve the original subject, character design, key shapes, and main composition; change only rendering technique, materials, colors, lighting, and visual language. Do not alter identity or core recognizable traits. Use English for any visible text.",
     poster: "Use “{{subject}}” as the key visual and faithfully reproduce its design and details from any attached references. Create a polished commercial poster with a clear focal point, intentional negative space, and strong hierarchy. Include the headline “{{headline}}” and key points “{{sellingPoints}}”. Use professional typography, unified lighting, and refined materials. Avoid cheap templates, cluttered backgrounds, and unrelated decoration. Use English for all visible text.",
@@ -3696,9 +3720,50 @@ function closeImageTemplateModal() {
   UI.imageTemplateFields.replaceChildren();
 }
 
+function isIntelStyleReference(reference) {
+  return reference?.file?.name === "intel-style.png";
+}
+
+async function applyIntelDataVizTemplate() {
+  const userReferences = imageState.references.filter((reference) => !isIntelStyleReference(reference));
+  if (!userReferences.length || imageState.busy) return;
+
+  try {
+    const [imageResponse, styleResponse] = await Promise.all([
+      fetch(chrome.runtime.getURL("ref/intel-style.png")),
+      fetch(chrome.runtime.getURL("ref/intel_inspired_premium_dataviz_style.json"))
+    ]);
+    if (!imageResponse.ok) throw new Error("Unable to load ref/intel-style.png");
+    if (!styleResponse.ok) throw new Error("Unable to load Intel style JSON");
+
+    const [styleBlob, rawJson] = await Promise.all([imageResponse.blob(), styleResponse.text()]);
+    JSON.parse(rawJson);
+
+    const hasStyleReference = imageState.references.some((reference) => (
+      isIntelStyleReference(reference) && reference.file.size === styleBlob.size
+    ));
+    if (!hasStyleReference) {
+      const styleFile = new File([styleBlob], "intel-style.png", {
+        type: styleBlob.type || "image/png",
+        lastModified: 0
+      });
+      const { added } = await addReferenceFiles([styleFile]);
+      if (!added) return;
+    }
+
+    setImagePrompt(`"""\n${rawJson}\n"""\n${t("image-intel-dataviz-instruction")}`);
+  } catch (error) {
+    setStatus("error", t("error-image") + (error?.message || String(error)));
+  }
+}
+
 function openImageTemplate(templateId) {
   const definition = IMAGE_QUICK_TEMPLATES.find((template) => template.id === templateId);
   if (!definition) return;
+  if (templateId === "intel-dataviz") {
+    applyIntelDataVizTemplate();
+    return;
+  }
   if (!definition.fields.length) {
     setImagePrompt(fillImagePromptTemplate(templateId));
     return;
@@ -3774,9 +3839,14 @@ function openCustomImageTemplate(prompt) {
 function renderImagePromptTools() {
   if (!UI.imagePromptTools) return;
   const lacksReferences = imageState.references.length === 0;
+  const lacksUserReferences = !imageState.references.some((reference) => !isIntelStyleReference(reference));
+  const templateNeedsReference = (template) => (
+    (template.requiresUserReferences && lacksUserReferences)
+    || (template.requiresReferences && lacksReferences)
+  );
   const lockIcon = `<svg class="qq-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
   const renderTemplateButtons = (templates, noteId) => templates.map((template) => {
-    const needsReference = template.requiresReferences && lacksReferences;
+    const needsReference = templateNeedsReference(template);
     const disabled = imageState.busy || needsReference;
     const unavailableAttributes = needsReference
       ? ` class="quick-question-btn needs-reference" title="${escapeHtml(t("image-reference-required-tooltip"))}" aria-describedby="${noteId}"`
@@ -3787,7 +3857,7 @@ function renderImagePromptTools() {
       ${needsReference ? lockIcon : ""}
     </button>`;
   }).join("");
-  const renderReferenceNote = (templates, noteId) => lacksReferences && templates.some((template) => template.requiresReferences)
+  const renderReferenceNote = (templates, noteId) => templates.some(templateNeedsReference)
     ? `<div class="image-reference-required-note" id="${noteId}" role="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m21 15-5-4-4 3-2-2-7 5"/></svg><span>${t("image-reference-required")}</span></div>`
     : "";
   const quickTemplates = IMAGE_QUICK_TEMPLATES.filter((template) => template.fields.length === 0);
