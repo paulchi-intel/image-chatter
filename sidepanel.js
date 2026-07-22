@@ -53,8 +53,6 @@ const TRANSLATIONS = {
     "new-tab": "新增分頁",
     "tab-scroll-left": "向左捲動分頁",
     "tab-scroll-right": "向右捲動分頁",
-    "image-compose-expand": "展開生成設定與參考圖",
-    "image-compose-collapse": "收合生成設定與參考圖",
     "status-reference-attached": "已加入參考圖",
     "error-reference-type": "參考圖只支援 PNG、JPEG 或 WebP",
     "error-reference-count": "每個生成分頁最多只能加入 {max} 張參考圖",
@@ -207,8 +205,6 @@ const TRANSLATIONS = {
     "new-tab": "新建标签页",
     "tab-scroll-left": "向左滚动标签页",
     "tab-scroll-right": "向右滚动标签页",
-    "image-compose-expand": "展开生成设置与参考图",
-    "image-compose-collapse": "收合生成设置与参考图",
     "status-reference-attached": "已加入参考图",
     "error-reference-type": "参考图只支持 PNG、JPEG 或 WebP",
     "error-reference-count": "每个生成标签页最多只能加入 {max} 张参考图",
@@ -363,8 +359,6 @@ const TRANSLATIONS = {
     "new-tab": "New tab",
     "tab-scroll-left": "Scroll tabs left",
     "tab-scroll-right": "Scroll tabs right",
-    "image-compose-expand": "Expand generation settings and references",
-    "image-compose-collapse": "Collapse generation settings and references",
     "status-reference-attached": "Reference image attached",
     "error-reference-type": "Reference images must be PNG, JPEG, or WebP",
     "error-reference-count": "Each generation tab can contain up to {max} reference images",
@@ -617,8 +611,6 @@ const UI = {
   imagePanel: document.getElementById("imagePanel"),
   imageTabBar: document.getElementById("imageTabBar"),
   imagePromptTools: document.getElementById("imagePromptTools"),
-  imageCompose: document.querySelector(".image-compose"),
-  imageComposeToggle: document.getElementById("imageComposeToggle"),
   imageStage: document.getElementById("imageStage"),
   imageSize: document.getElementById("imageSize"),
   imageQuality: document.getElementById("imageQuality"),
@@ -706,7 +698,7 @@ function createImageTab(id, saved = {}) {
     size: saved.size || "1024x1024",
     quality: saved.quality || "medium",
     format: saved.format || "png",
-    composeCollapsed: Boolean(saved.composeCollapsed),
+    sessionSaved: Boolean(saved.sessionSaved),
     customLabel: saved.customLabel || null,
     autoLabel: saved.autoLabel || null,
     savedReferenceIds: Array.isArray(saved.referenceIds) ? saved.referenceIds.filter(Boolean) : [],
@@ -1336,7 +1328,6 @@ function updateUILanguage() {
   // "verify models" action) pick up the newly selected language.
   renderModelOptions();
   renderReferenceImages();
-  renderImageComposeState();
   renderImageTabBar();
   renderChatImageAttachment();
   renderMessages();
@@ -1786,7 +1777,7 @@ function serializeImageTab(tab) {
     size: tab.size || "1024x1024",
     quality: tab.quality || "medium",
     format: tab.format || "png",
-    composeCollapsed: Boolean(tab.composeCollapsed),
+    sessionSaved: Boolean(tab.sessionSaved),
     customLabel: tab.customLabel || null,
     autoLabel: tab.autoLabel || null,
     referenceIds: tab.references.map((reference) => reference.id).filter(Boolean),
@@ -2038,31 +2029,11 @@ function loadActiveImageTab() {
   UI.imageSize.value = tab.size || "1024x1024";
   UI.imageQuality.value = tab.quality || "medium";
   UI.imageFormat.value = tab.format || "png";
-  renderImageComposeState();
   renderImageTabBar();
   renderReferenceImages();
   UI.imageProgressText.textContent = tab.progressText || t("image-generating");
   refreshImageBusyUI();
   setStatus(tab.busy ? "loading" : "ready", tab.busy ? UI.imageProgressText.textContent : t("status-ready"));
-}
-
-function renderImageComposeState() {
-  const tab = getActiveImageTab();
-  const collapsed = Boolean(tab?.composeCollapsed);
-  UI.imageCompose.classList.toggle("collapsed", collapsed);
-  UI.imageComposeToggle.setAttribute("aria-expanded", String(!collapsed));
-  const key = collapsed ? "image-compose-expand" : "image-compose-collapse";
-  UI.imageComposeToggle.title = t(key);
-  UI.imageComposeToggle.setAttribute("data-i18n-title", key);
-  UI.imageComposeToggle.setAttribute("aria-label", t(key));
-}
-
-async function toggleImageCompose() {
-  const tab = getActiveImageTab();
-  if (!tab) return;
-  tab.composeCollapsed = !tab.composeCollapsed;
-  renderImageComposeState();
-  await saveState();
 }
 
 async function addImageTab() {
@@ -2110,10 +2081,22 @@ async function deleteImageTabAssets(tab) {
 }
 
 async function closeImageTab(id) {
-  const index = imageTabs.findIndex((tab) => tab.id === id);
+  let index = imageTabs.findIndex((tab) => tab.id === id);
   if (index < 0) return;
   if (imageTabs[index].busy) return;
   commitActiveImageTab();
+
+  const tab = imageTabs[index];
+  const hasUnsaved = tab.turns.length > 0 && !tab.sessionSaved;
+  if (hasUnsaved) {
+    if (id !== state.activeImageTabId) await switchImageTab(id);
+    const choice = await showConfirmSaveDialog();
+    if (choice === "cancel") return;
+    if (choice === "yes") await downloadImageSession(tab);
+    index = imageTabs.findIndex((item) => item.id === id);
+    if (index < 0) return;
+  }
+
   const [removed] = imageTabs.splice(index, 1);
   releaseImageTabObjects(removed);
   await deleteImageTabAssets(removed);
@@ -2273,11 +2256,6 @@ async function addReferenceFiles(files) {
         setStatus("error", error?.message || String(error));
       }
     }
-  }
-  if (added) {
-    const tab = getActiveImageTab();
-    if (tab) tab.composeCollapsed = false;
-    renderImageComposeState();
   }
   renderReferenceImages();
   if (added) await saveState();
@@ -2496,6 +2474,7 @@ async function generateImage() {
   };
   const referenceFiles = activeImageTab.references.map((entry) => entry.file);
   activeImageTab.turns.push(requestTurn);
+  activeImageTab.sessionSaved = false;
 
   const controller = new AbortController();
   activeImageTab.controller = controller;
@@ -2559,6 +2538,7 @@ async function generateImage() {
   } finally {
     if (activeImageTab.controller === controller) activeImageTab.controller = null;
     activeImageTab.progressText = "";
+    activeImageTab.sessionSaved = false;
     setImageBusy(activeImageTab, false);
     await saveState();
   }
@@ -5080,12 +5060,48 @@ function buildSessionMarkdown() {
   return lines.join("\n");
 }
 
-async function downloadSession() {
-  if (state.messages.length === 0) {
-    setStatus("error", t("status-session-empty"));
-    return;
-  }
-  const md = buildSessionMarkdown();
+function buildImageSessionMarkdown(tab) {
+  const lines = [];
+  const dateStr = new Date().toLocaleString();
+  const sessionTitle = String(getImageTabFullLabel(tab) || "").trim().replace(/\s+/g, " ");
+  lines.push(`# ${sessionTitle || "Image Chatter Session"}\n`);
+  lines.push(`**Date**: ${dateStr}  `);
+  lines.push(`**Model**: ${state.selectedGenerationModel}  `);
+  lines.push("\n---\n");
+
+  tab.turns.forEach((turn) => {
+    lines.push("## \u{1F464} User\n");
+    turn.referenceIds.forEach((imageId, index) => {
+      const image = chatImageAssets.get(imageId);
+      const fallbackName = `Reference image ${index + 1}`;
+      if (image?.dataUrl) {
+        const name = image.name || fallbackName;
+        lines.push(`<img src="${image.dataUrl}" alt="${escapeHtmlAttribute(name)}" style="max-width: 100%; height: auto;" />\n`);
+        lines.push(`_${escapeHtml(name)}_\n`);
+      } else {
+        lines.push(`_[Image unavailable: ${escapeHtml(fallbackName)}]_\n`);
+      }
+    });
+    lines.push(`${turn.prompt || ""}\n`);
+    lines.push(`_Size: ${escapeHtml(turn.size || "auto")} · Quality: ${escapeHtml(turn.quality || "auto")} · Format: ${escapeHtml((turn.format || "png").toUpperCase())}_\n`);
+    lines.push("---\n");
+
+    lines.push("## \u{1F916} Assistant\n");
+    const result = chatImageAssets.get(turn.resultId);
+    if (result?.dataUrl) {
+      const name = result.name || `generated.${turn.format === "jpeg" ? "jpeg" : "png"}`;
+      lines.push(`<img src="${result.dataUrl}" alt="${escapeHtmlAttribute(name)}" style="max-width: 100%; height: auto;" />\n`);
+      if (turn.revisedPrompt) lines.push(`_${escapeHtml(turn.revisedPrompt)}_\n`);
+    } else {
+      lines.push("_[Generated image unavailable]_\n");
+    }
+    lines.push("---\n");
+  });
+
+  return lines.join("\n");
+}
+
+async function downloadMarkdownSession(md, onSaved) {
   const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const ts = new Date().toISOString().slice(0, 19).replace("T", "_").replace(/:/g, "");
@@ -5119,7 +5135,7 @@ async function downloadSession() {
     });
 
     if (savedOk) {
-      state.sessionSaved = true;
+      await onSaved();
       await saveState();
       setStatus("ready", t("status-session-saved"));
     } else {
@@ -5129,6 +5145,37 @@ async function downloadSession() {
     setStatus("error", err.message || "Download failed");
   } finally {
     URL.revokeObjectURL(url);
+  }
+}
+
+async function downloadSession() {
+  if (state.messages.length === 0) {
+    setStatus("error", t("status-session-empty"));
+    return;
+  }
+  await downloadMarkdownSession(buildSessionMarkdown(), async () => {
+    state.sessionSaved = true;
+    const tab = tabs.find((item) => item.id === state.activeTabId);
+    if (tab) tab.sessionSaved = true;
+  });
+}
+
+async function downloadImageSession(tab = getActiveImageTab()) {
+  if (!tab || tab.turns.length === 0) {
+    setStatus("error", t("status-session-empty"));
+    return;
+  }
+  commitActiveImageTab();
+  await downloadMarkdownSession(buildImageSessionMarkdown(tab), async () => {
+    tab.sessionSaved = true;
+  });
+}
+
+async function downloadActiveSession() {
+  if (imageState.mode === "image") {
+    await downloadImageSession();
+  } else {
+    await downloadSession();
   }
 }
 
@@ -5184,7 +5231,7 @@ function setupEventHandlers() {
 
   UI.budgetText.addEventListener("click", () => refreshBudget());
   UI.panelModeBtn.addEventListener("click", togglePanelMode);
-  UI.saveSessionBtn.addEventListener("click", downloadSession);
+  UI.saveSessionBtn.addEventListener("click", downloadActiveSession);
   UI.clearBtn.addEventListener("click", clearConversation);
 
   UI.sendBtn.addEventListener("click", sendMessage);
@@ -5217,7 +5264,6 @@ function setupEventHandlers() {
     (selectImage ? UI.imageModeBtn : UI.chatModeBtn).focus();
   });
   UI.addReferenceBtn.addEventListener("click", () => UI.referenceInput.click());
-  UI.imageComposeToggle.addEventListener("click", toggleImageCompose);
   UI.referenceInput.addEventListener("change", async () => {
     const files = Array.from(UI.referenceInput.files || []);
     UI.referenceInput.value = "";

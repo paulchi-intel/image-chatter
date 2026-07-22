@@ -793,18 +793,16 @@
       display: flex;
       align-items: flex-end;
       gap: 8px;
+      width: min(100%, 760px);
+      margin: 0 0 12px;
       min-width: 0;
+      flex: 0 0 auto;
     }
 
     .image-compose-options {
       flex: 1;
       grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr);
     }
-
-    .image-compose-toggle { flex: 0 0 29px; margin: 0 0 2px auto; }
-    .image-compose.collapsed .image-compose-toggle svg { transform: rotate(0); }
-    .image-compose.collapsed .image-compose-options,
-    .image-compose.collapsed .reference-list { display: none; }
 
     #addReferenceBtn {
       width: 42px;
@@ -2659,24 +2657,6 @@
     <div class="tab-bar image-tab-bar" id="imageTabBar"></div>
 
     <div class="image-stage" id="imageStage">
-      <div class="image-prompt-tools" id="imagePromptTools"></div>
-      <div class="image-empty" id="imageEmpty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-        <div class="empty-state-title" data-i18n="image-empty-title">開始生成圖片</div>
-        <div class="empty-state-text" data-i18n="image-empty-text">在下方輸入圖片描述；也可以先加入參考圖，再使用快速生成或生成模板。</div>
-      </div>
-      <div class="image-progress" id="imageProgress" hidden>
-        <div class="image-progress-spinner"></div>
-        <div class="image-progress-text" id="imageProgressText" data-i18n="image-generating">Generating image...</div>
-        <button class="image-cancel-btn" id="cancelImageBtn" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-          <span data-i18n="image-cancel">Cancel</span>
-        </button>
-      </div>
-      <div class="image-result" id="imageResult" hidden></div>
-    </div>
-
-    <div class="image-compose">
       <div class="image-compose-settings">
         <div class="image-control-grid image-compose-options">
           <div class="image-field">
@@ -2707,10 +2687,25 @@
             </select>
           </div>
         </div>
-        <button class="chat-attachment-toggle image-compose-toggle" id="imageComposeToggle" type="button" aria-expanded="true" data-i18n-title="image-compose-collapse" title="收合生成設定與參考圖">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>
+      </div>
+      <div class="image-prompt-tools" id="imagePromptTools"></div>
+      <div class="image-empty" id="imageEmpty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+        <div class="empty-state-title" data-i18n="image-empty-title">開始生成圖片</div>
+        <div class="empty-state-text" data-i18n="image-empty-text">在下方輸入圖片描述；也可以先加入參考圖，再使用快速生成或生成模板。</div>
+      </div>
+      <div class="image-progress" id="imageProgress" hidden>
+        <div class="image-progress-spinner"></div>
+        <div class="image-progress-text" id="imageProgressText" data-i18n="image-generating">Generating image...</div>
+        <button class="image-cancel-btn" id="cancelImageBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          <span data-i18n="image-cancel">Cancel</span>
         </button>
       </div>
+      <div class="image-result" id="imageResult" hidden></div>
+    </div>
+
+    <div class="image-compose">
       <div class="reference-list" id="referenceList" hidden></div>
       <div class="image-compose-main">
         <button class="reference-add-btn" id="addReferenceBtn" type="button" data-i18n-title="image-add-reference" title="參考圖">
