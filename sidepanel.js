@@ -51,6 +51,8 @@ const TRANSLATIONS = {
     "image-no-references": "尚未加入參考圖",
     "image-new-tab-label": "圖片 {number}",
     "new-tab": "新增分頁",
+    "tab-scroll-left": "向左捲動分頁",
+    "tab-scroll-right": "向右捲動分頁",
     "image-compose-expand": "展開生成設定與參考圖",
     "image-compose-collapse": "收合生成設定與參考圖",
     "status-reference-attached": "已加入參考圖",
@@ -203,6 +205,8 @@ const TRANSLATIONS = {
     "image-no-references": "尚未加入参考图",
     "image-new-tab-label": "图片 {number}",
     "new-tab": "新建标签页",
+    "tab-scroll-left": "向左滚动标签页",
+    "tab-scroll-right": "向右滚动标签页",
     "image-compose-expand": "展开生成设置与参考图",
     "image-compose-collapse": "收合生成设置与参考图",
     "status-reference-attached": "已加入参考图",
@@ -357,6 +361,8 @@ const TRANSLATIONS = {
     "image-no-references": "No reference images",
     "image-new-tab-label": "Image {number}",
     "new-tab": "New tab",
+    "tab-scroll-left": "Scroll tabs left",
+    "tab-scroll-right": "Scroll tabs right",
     "image-compose-expand": "Expand generation settings and references",
     "image-compose-collapse": "Collapse generation settings and references",
     "status-reference-attached": "Reference image attached",
@@ -1047,6 +1053,42 @@ function serializeChatImageGroup(group) {
   };
 }
 
+function inferChatImageGroupFromMessages(messages) {
+  const list = Array.isArray(messages) ? messages : [];
+  let userIndex = -1;
+  for (let index = list.length - 1; index >= 0; index--) {
+    if (list[index]?.role === "user" && collectMessageImageIds(list[index]).length) {
+      userIndex = index;
+      break;
+    }
+  }
+  if (userIndex < 0) return null;
+
+  const userMessage = list[userIndex];
+  const images = collectMessageImageIds(userMessage)
+    .map((id) => chatImageAssets.get(id))
+    .filter(Boolean);
+  if (!images.length) return null;
+
+  const mode = userMessage.analysisMode === "per-image" ? "per-image" : "combined";
+  const group = createChatImageGroup(images, mode);
+  group.contextStartIndex = userIndex;
+  group.initialPrompt = userMessage.content || "";
+  group.initialMode = mode;
+  group.batchId = userMessage.batchId || null;
+  if (group.batchId) {
+    const resultIndex = list.findIndex((message, index) => (
+      index > userIndex
+      && message.batchId === group.batchId
+      && message.analysisMode === "per-image-results"
+    ));
+    group.scopeStartIndex = resultIndex >= 0 ? resultIndex + 1 : userIndex + 1;
+  } else {
+    group.scopeStartIndex = userIndex;
+  }
+  return group;
+}
+
 function normalizeInterruptedBatchMessages(messages) {
   (messages || []).forEach((message) => {
     if (message?.analysisMode !== "per-image-results" || !Array.isArray(message.results)) return;
@@ -1076,11 +1118,23 @@ async function hydrateChatImagesForTabs() {
   chatImagesByTab.clear();
   tabs.forEach((tab) => {
     const savedGroup = tab.activeImageGroup || null;
-    const activeIds = Array.isArray(savedGroup?.imageIds)
+    let activeIds = Array.isArray(savedGroup?.imageIds)
       ? savedGroup.imageIds
       : tab.activeImageId ? [tab.activeImageId] : [];
+    const savedImagesAreReferenced = (tab.messages || []).some((message) => (
+      collectMessageImageIds(message).some((id) => activeIds.includes(id))
+    ));
+    if (activeIds.length && !savedImagesAreReferenced && savedGroup?.contextStartIndex != null) {
+      // A request may have been interrupted after hiding the composer attachment
+      // but before its user message was committed. Restore it as a pending attachment.
+      savedGroup.contextStartIndex = null;
+    }
     const images = activeIds.map((id) => chatImageAssets.get(id)).filter(Boolean);
-    if (!images.length) return;
+    if (!images.length) {
+      const inferredGroup = inferChatImageGroupFromMessages(tab.messages);
+      if (inferredGroup) chatImagesByTab.set(tab.id, inferredGroup);
+      return;
+    }
     const fallbackIndex = (tab.messages || []).findIndex((message) => (
       collectMessageImageIds(message).some((id) => activeIds.includes(id))
     ));
@@ -1425,9 +1479,10 @@ function readFileAsDataUrl(file) {
 function renderChatImageAttachment() {
   const group = getChatImageGroup();
   const images = group?.images || [];
-  UI.chatAttachment.hidden = images.length === 0;
+  const hasPendingImages = images.length > 0 && group.contextStartIndex == null;
+  UI.chatAttachment.hidden = !hasPendingImages;
   UI.chatAttachmentList.textContent = "";
-  if (!images.length) return;
+  if (!hasPendingImages) return;
 
   UI.chatAttachment.classList.toggle("collapsed", Boolean(group.collapsed));
   UI.chatAttachmentToggle.setAttribute("aria-expanded", String(!group.collapsed));
@@ -1436,15 +1491,11 @@ function renderChatImageAttachment() {
   UI.chatAttachmentToggle.setAttribute("data-i18n-title", toggleKey);
   UI.chatAttachmentToggle.setAttribute("aria-label", t(toggleKey));
 
-  const contextText = group.focusImageId
-    ? t("context-single", { name: images.find((image) => image.id === group.focusImageId)?.name || "" })
-    : group.contextStartIndex != null
-      ? t("context-all")
-      : t("attachment-count", { count: String(images.length), max: String(MAX_CHAT_IMAGES) });
+  const contextText = t("attachment-count", { count: String(images.length), max: String(MAX_CHAT_IMAGES) });
   UI.chatAttachmentSummary.textContent = contextText;
   UI.combinedAnalysisBtn.classList.toggle("active", group.analysisMode === "combined");
   UI.perImageAnalysisBtn.classList.toggle("active", group.analysisMode === "per-image");
-  const modeLocked = group.contextStartIndex != null;
+  const modeLocked = false;
   UI.combinedAnalysisBtn.disabled = modeLocked;
   UI.perImageAnalysisBtn.disabled = modeLocked;
 
@@ -1703,7 +1754,11 @@ async function removeChatImage(imageId) {
   const [image] = group.images.splice(index, 1);
   if (group.contextStartIndex == null) await deleteChatImageAsset(image.id);
   if (group.focusImageId === image.id) group.focusImageId = null;
-  if (!group.images.length) chatImagesByTab.delete(state.activeTabId);
+  if (!group.images.length) {
+    chatImagesByTab.delete(state.activeTabId);
+    const previousContext = inferChatImageGroupFromMessages(state.messages);
+    if (previousContext) chatImagesByTab.set(state.activeTabId, previousContext);
+  }
   renderChatImageAttachment();
   renderMessages();
   await saveState();
@@ -1794,11 +1849,113 @@ function startImageTabRename(tab, label, button) {
   input.addEventListener("dblclick", (event) => event.stopPropagation());
 }
 
+function createScrollableTabBar(bar, onAdd, addDisabled = false) {
+  bar.replaceChildren();
+
+  const previous = document.createElement("button");
+  previous.className = "tab-scroll-btn tab-scroll-prev";
+  previous.type = "button";
+  previous.textContent = "\u2039";
+  previous.title = t("tab-scroll-left");
+  previous.setAttribute("aria-label", t("tab-scroll-left"));
+
+  const viewport = document.createElement("div");
+  viewport.className = "tab-scroll-viewport";
+  viewport.tabIndex = 0;
+
+  const strip = document.createElement("div");
+  strip.className = "tab-strip";
+  strip.setAttribute("role", "tablist");
+  viewport.appendChild(strip);
+
+  const next = document.createElement("button");
+  next.className = "tab-scroll-btn tab-scroll-next";
+  next.type = "button";
+  next.textContent = "\u203a";
+  next.title = t("tab-scroll-right");
+  next.setAttribute("aria-label", t("tab-scroll-right"));
+
+  const add = document.createElement("button");
+  add.className = "tab-add";
+  add.type = "button";
+  add.textContent = "+";
+  add.disabled = addDisabled;
+  add.title = t("new-tab");
+  add.setAttribute("aria-label", t("new-tab"));
+  add.setAttribute("data-i18n-title", "new-tab");
+  add.addEventListener("click", onAdd);
+
+  const updateControls = () => {
+    const maxScroll = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+    const hasOverflow = maxScroll > 1;
+    previous.classList.toggle("no-overflow", !hasOverflow);
+    next.classList.toggle("no-overflow", !hasOverflow);
+    previous.disabled = !hasOverflow || viewport.scrollLeft <= 1;
+    next.disabled = !hasOverflow || viewport.scrollLeft >= maxScroll - 1;
+  };
+
+  const scrollByPage = (direction) => {
+    const distance = Math.max(120, Math.round(viewport.clientWidth * 0.72));
+    viewport.scrollBy({ left: direction * distance, behavior: "smooth" });
+  };
+  previous.addEventListener("click", () => scrollByPage(-1));
+  next.addEventListener("click", () => scrollByPage(1));
+  viewport.addEventListener("scroll", updateControls, { passive: true });
+  viewport.addEventListener("wheel", (event) => {
+    if (Math.abs(event.deltaY) <= Math.abs(event.deltaX) || viewport.scrollWidth <= viewport.clientWidth) return;
+    event.preventDefault();
+    viewport.scrollLeft += event.deltaY;
+  }, { passive: false });
+  viewport.addEventListener("keydown", (event) => {
+    if (event.target !== viewport || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === "Home") viewport.scrollTo({ left: 0, behavior: "smooth" });
+    else if (event.key === "End") viewport.scrollTo({ left: viewport.scrollWidth, behavior: "smooth" });
+    else scrollByPage(event.key === "ArrowLeft" ? -1 : 1);
+  });
+
+  if (typeof ResizeObserver === "function") {
+    const resizeObserver = new ResizeObserver(() => {
+      if (!viewport.isConnected) {
+        resizeObserver.disconnect();
+        return;
+      }
+      updateControls();
+    });
+    resizeObserver.observe(viewport);
+  }
+
+  bar.append(previous, viewport, next, add);
+
+  const finish = () => requestAnimationFrame(() => {
+    const active = strip.querySelector(".tab-item.active");
+    if (active) {
+      const left = active.offsetLeft;
+      const right = left + active.offsetWidth;
+      let targetScroll = viewport.scrollLeft;
+      if (left < viewport.scrollLeft) targetScroll = left;
+      else if (right > viewport.scrollLeft + viewport.clientWidth) {
+        targetScroll = right - viewport.clientWidth;
+      }
+      if (targetScroll !== viewport.scrollLeft) {
+        const previousBehavior = viewport.style.scrollBehavior;
+        viewport.style.scrollBehavior = "auto";
+        viewport.scrollLeft = targetScroll;
+        requestAnimationFrame(() => { viewport.style.scrollBehavior = previousBehavior; });
+      }
+    }
+    updateControls();
+  });
+
+  return { strip, viewport, finish };
+}
+
 function renderImageTabBar() {
   const bar = UI.imageTabBar;
   if (!bar) return;
-  bar.textContent = "";
   const locked = imageTabs.some((tab) => tab.busy);
+  const tabBar = createScrollableTabBar(bar, addImageTab, locked);
+  const strip = tabBar.strip;
   let dragSourceId = null;
 
   imageTabs.forEach((tab) => {
@@ -1848,7 +2005,7 @@ function renderImageTabBar() {
       });
       button.addEventListener("dragend", () => {
         button.classList.remove("dragging");
-        bar.querySelectorAll(".tab-item").forEach((item) => item.classList.remove("drag-over"));
+        strip.querySelectorAll(".tab-item").forEach((item) => item.classList.remove("drag-over"));
       });
       button.addEventListener("dragover", (event) => {
         event.preventDefault();
@@ -1869,18 +2026,9 @@ function renderImageTabBar() {
         saveState();
       });
     }
-    bar.appendChild(button);
+    strip.appendChild(button);
   });
-
-  const addButton = document.createElement("button");
-  addButton.className = "tab-add";
-  addButton.type = "button";
-  addButton.textContent = "+";
-  addButton.title = t("new-tab");
-  addButton.setAttribute("aria-label", t("new-tab"));
-  addButton.setAttribute("data-i18n-title", "new-tab");
-  addButton.addEventListener("click", addImageTab);
-  bar.appendChild(addButton);
+  tabBar.finish();
 }
 
 function loadActiveImageTab() {
@@ -3375,7 +3523,8 @@ function getTabLabel(tab) {
 function renderTabBar() {
   const bar = document.getElementById("tabBar");
   if (!bar) return;
-  bar.innerHTML = "";
+  const tabBar = createScrollableTabBar(bar, addTab);
+  const strip = tabBar.strip;
 
   let dragSrcId = null;
 
@@ -3415,7 +3564,7 @@ function renderTabBar() {
     });
     btn.addEventListener("dragend", () => {
       btn.classList.remove("dragging");
-      bar.querySelectorAll(".tab-item").forEach(b => b.classList.remove("drag-over"));
+      strip.querySelectorAll(".tab-item").forEach(b => b.classList.remove("drag-over"));
     });
     btn.addEventListener("dragover", e => {
       e.preventDefault();
@@ -3437,17 +3586,9 @@ function renderTabBar() {
       saveState();
     });
 
-    bar.appendChild(btn);
+    strip.appendChild(btn);
   });
-
-  const addBtn = document.createElement("button");
-  addBtn.className = "tab-add";
-  addBtn.textContent = "+";
-  addBtn.title = t("new-tab");
-  addBtn.setAttribute("aria-label", t("new-tab"));
-  addBtn.setAttribute("data-i18n-title", "new-tab");
-  addBtn.addEventListener("click", addTab);
-  bar.appendChild(addBtn);
+  tabBar.finish();
 }
 
 // Inline-rename a tab: swap the label for a text input, commit on Enter/blur,
@@ -4336,12 +4477,29 @@ async function sendCombinedMessage(userMessage, group, srcTabId, requestModel) {
     ? createInitialUserRecord(userMessage, group, "combined")
     : { role: "user", content: userMessage, contextImageId: group.focusImageId || null };
 
+  if (isInitial) {
+    group.contextStartIndex = state.messages.length;
+    group.initialPrompt = userMessage;
+    group.initialMode = "combined";
+    group.scopeStartIndex = group.contextStartIndex;
+  }
+
   addMessage("user", userMessage, true, isInitial ? group.images : [], userRecord);
+  if (state.activeTabId === srcTabId) renderChatImageAttachment();
   showTypingIndicator();
   const response = await requestVision(apiMessages, requestModel);
   hideTypingIndicator();
   if (!response?.ok) {
-    if (state.activeTabId === srcTabId) renderMessages();
+    if (isInitial) {
+      group.contextStartIndex = null;
+      group.initialPrompt = "";
+      group.initialMode = null;
+      group.scopeStartIndex = null;
+    }
+    if (state.activeTabId === srcTabId) {
+      renderMessages();
+      renderChatImageAttachment();
+    }
     throw new Error(response?.error || "Unknown error");
   }
 
@@ -4349,10 +4507,6 @@ async function sendCombinedMessage(userMessage, group, srcTabId, requestModel) {
   const destinationMessages = state.activeTabId === srcTabId ? state.messages : srcTab?.messages;
   if (!destinationMessages) return;
   if (isInitial) {
-    group.contextStartIndex = destinationMessages.length;
-    group.initialPrompt = userMessage;
-    group.initialMode = "combined";
-    group.scopeStartIndex = group.contextStartIndex;
     assignAutoTabLabel(srcTab, group.images[0]?.name, userMessage);
   }
   if (srcTab) srcTab.activeImageGroup = serializeChatImageGroup(group);
@@ -4385,7 +4539,11 @@ async function sendMessage() {
     return;
   }
   const srcTabId = state.activeTabId;
-  const group = getChatImageGroup(srcTabId);
+  let group = getChatImageGroup(srcTabId);
+  if (!group?.images?.length) {
+    group = inferChatImageGroupFromMessages(state.messages);
+    if (group) chatImagesByTab.set(srcTabId, group);
+  }
   if (!group?.images?.length) {
     setStatus("error", t("error-no-analysis-image"));
     return;
@@ -4405,6 +4563,11 @@ async function sendMessage() {
     }
     setStatus("ready", t("status-ready"));
   } catch (err) {
+    if (!UI.messageInput.value) {
+      UI.messageInput.value = userMessage;
+      UI.messageInput.style.height = "auto";
+      UI.messageInput.style.height = `${UI.messageInput.scrollHeight}px`;
+    }
     setStatus("error", t("error-send") + (err.message || String(err)));
   } finally {
     setChatComposerDisabled(false);

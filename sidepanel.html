@@ -2370,10 +2370,40 @@
       background: #fff;
       border-bottom: 2px solid #e5e7eb;
       flex-shrink: 0;
-      overflow-x: auto;
-      scrollbar-width: none;
+      overflow: hidden;
     }
-    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-scroll-viewport {
+      min-width: 0;
+      flex: 1;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      scroll-behavior: smooth;
+    }
+    .tab-scroll-viewport::-webkit-scrollbar { display: none; }
+    .tab-strip {
+      display: flex;
+      align-items: stretch;
+      min-width: max-content;
+      height: 100%;
+    }
+    .tab-scroll-btn {
+      width: 28px;
+      min-width: 28px;
+      padding: 0;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      background: #fff;
+      color: #6b7280;
+      font: inherit;
+      font-size: 18px;
+      cursor: pointer;
+      z-index: 2;
+    }
+    .tab-scroll-btn:hover:not(:disabled) { background: #eef2ff; color: #3b82f6; }
+    .tab-scroll-btn:disabled { cursor: default; color: #d1d5db; }
+    .tab-scroll-btn.no-overflow { visibility: hidden; }
     .tab-item {
       display: flex;
       align-items: center;

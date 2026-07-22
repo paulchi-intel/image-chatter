@@ -34,8 +34,9 @@ A Chrome extension for image analysis and image generation. Accepts GNAI API key
 1. Add one or more images through the composer button, drag and drop, or the clipboard.
 2. Choose **Combined analysis** for one response covering the full set, or **Per-image analysis** to apply the prompt separately to every image.
 3. Choose an image-analysis model, then select a quick question or enter a custom question.
-4. In per-image results, use **Follow up** on a card to focus on one image or **Compare all images** to restore the full-batch context.
-5. Adding another image after a question starts a new image context while keeping earlier messages visible.
+4. After sending, the composer attachment and prompt are cleared while the image remains in conversation context for text-only follow-up questions.
+5. In per-image results, use **Follow up** on a card to focus on one image or **Compare all images** to restore the full-batch context.
+6. Adding another image after a question starts a new image context while keeping earlier messages visible.
 
 ### Generate
 
