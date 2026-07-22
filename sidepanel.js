@@ -11,7 +11,8 @@ const STORAGE_KEYS = {
   savedPrompts: "savedPrompts",
   imageSavedPrompts: "imageSavedPrompts",
   panelMode: "panelMode",
-  verifiedModels: "verifiedModels"
+  verifiedModels: "verifiedModels",
+  dismissedUpdateVersion: "dismissedUpdateVersion"
 };
 
 // Special sentinel value used as a model-selector option that triggers
@@ -66,6 +67,10 @@ const TRANSLATIONS = {
     "load-page": "載入網頁",
     "load-clipboard": "載入剪貼簿",
     "status-ready": "準備就緒",
+    "current-version": "目前版本 v{version}",
+    "update-available": "Image Chatter v{version} 已可下載。",
+    "update-download": "下載新版",
+    "update-dismiss": "忽略此版本",
     "status-loading-page": "載入網頁中...",
     "status-loading-clipboard": "載入剪貼簿中...",
     "status-page-loaded": "網頁已載入",
@@ -218,6 +223,10 @@ const TRANSLATIONS = {
     "load-page": "载入网页",
     "load-clipboard": "载入剪贴板",
     "status-ready": "准备就绪",
+    "current-version": "当前版本 v{version}",
+    "update-available": "Image Chatter v{version} 已可下载。",
+    "update-download": "下载新版",
+    "update-dismiss": "忽略此版本",
     "status-loading-page": "载入网页中...",
     "status-loading-clipboard": "载入剪贴板中...",
     "status-page-loaded": "网页已载入",
@@ -372,6 +381,10 @@ const TRANSLATIONS = {
     "load-page": "Load Page",
     "load-clipboard": "Load Clipboard",
     "status-ready": "Ready",
+    "current-version": "Current version v{version}",
+    "update-available": "Image Chatter v{version} is available.",
+    "update-download": "Download update",
+    "update-dismiss": "Skip this version",
     "status-loading-page": "Loading page...",
     "status-loading-clipboard": "Loading clipboard...",
     "status-page-loaded": "Page loaded",
@@ -586,6 +599,11 @@ Object.entries(IMAGE_TRANSLATIONS).forEach(([language, values]) => Object.assign
 
 const UI = {
   headerTitle: document.getElementById("headerTitle"),
+  extensionVersion: document.getElementById("extensionVersion"),
+  updateBanner: document.getElementById("updateBanner"),
+  updateMessage: document.getElementById("updateMessage"),
+  updateLink: document.getElementById("updateLink"),
+  updateDismissBtn: document.getElementById("updateDismissBtn"),
   panelModeBtn: document.getElementById("panelModeBtn"),
   clearBtn: document.getElementById("clearBtn"),
   saveSessionBtn: document.getElementById("saveSessionBtn"),
@@ -655,6 +673,8 @@ const UI = {
   confirmSaveNoBtn: document.getElementById("confirmSaveNoBtn"),
   confirmSaveCancelBtn: document.getElementById("confirmSaveCancelBtn")
 };
+
+let availableUpdate = null;
 
 // When running as a popup window, background embeds the source browser windowId
 // in the URL (?srcWindowId=N) so we can call sidePanel.open() synchronously
@@ -1323,6 +1343,7 @@ function updateUILanguage() {
 
   UI.languageSelect.value = state.currentLanguage;
   updatePanelModeBtn();
+  renderUpdateBanner();
 
   // Re-render the model selector so dynamically built options (e.g. the
   // "verify models" action) pick up the newly selected language.
@@ -1435,6 +1456,50 @@ async function sendRuntimeMessage(payload, timeoutMs = RUNTIME_MESSAGE_TIMEOUT_M
       resolve(response || { ok: false, error: "No response from background" });
     });
   });
+}
+
+function renderInstalledVersion() {
+  const version = chrome.runtime.getManifest().version;
+  UI.extensionVersion.textContent = `v${version}`;
+  UI.extensionVersion.title = t("current-version", { version });
+}
+
+function renderUpdateBanner() {
+  renderInstalledVersion();
+  if (!availableUpdate?.latestVersion) {
+    UI.updateBanner.hidden = true;
+    return;
+  }
+
+  UI.updateMessage.textContent = t("update-available", { version: availableUpdate.latestVersion });
+  UI.updateLink.href = availableUpdate.releaseUrl;
+  UI.updateBanner.hidden = false;
+}
+
+async function checkForExtensionUpdate(force = false) {
+  renderInstalledVersion();
+  const result = await sendRuntimeMessage({ type: "CHECK_EXTENSION_UPDATE", force });
+  if (!result?.ok || !result.updateAvailable || !result.latestVersion) return;
+
+  const stored = await chrome.storage.local.get(STORAGE_KEYS.dismissedUpdateVersion);
+  if (stored[STORAGE_KEYS.dismissedUpdateVersion] === result.latestVersion) return;
+
+  availableUpdate = {
+    latestVersion: result.latestVersion,
+    releaseUrl: /^https:\/\/github\.com\/paulchi-intel\/image-chatter\/releases\//.test(result.releaseUrl || "")
+      ? result.releaseUrl
+      : "https://github.com/paulchi-intel/image-chatter/releases/latest"
+  };
+  renderUpdateBanner();
+}
+
+async function dismissExtensionUpdate() {
+  if (!availableUpdate?.latestVersion) return;
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.dismissedUpdateVersion]: availableUpdate.latestVersion
+  });
+  availableUpdate = null;
+  renderUpdateBanner();
 }
 
 function isValidApiKey(key) {
@@ -1808,7 +1873,9 @@ function getImageTabFullLabel(tab) {
   if (tab.customLabel) return tab.customLabel.trim().replace(/\s+/g, " ");
   if (tab.autoLabel) return tab.autoLabel.trim().replace(/\s+/g, " ");
   if (tab.prompt) return tab.prompt.trim().replace(/\s+/g, " ");
-  const tabNumber = Math.max(imageTabs.findIndex((item) => item.id === tab.id) + 1, 1);
+  const tabNumber = Number.isInteger(tab.id) && tab.id >= 0
+    ? tab.id + 1
+    : Math.max(imageTabs.findIndex((item) => item === tab) + 1, 1);
   return t("image-new-tab-label", { number: String(tabNumber) });
 }
 
@@ -2321,6 +2388,21 @@ async function removeReferenceImage(index) {
   await saveState();
 }
 
+function clearImageComposerAfterSend(tab) {
+  if (!tab) return;
+  tab.references.forEach((reference) => {
+    if (reference.url) URL.revokeObjectURL(reference.url);
+  });
+  tab.references = [];
+  tab.prompt = "";
+
+  if (tab.id !== state.activeImageTabId) return;
+  UI.referenceInput.value = "";
+  UI.imagePrompt.value = "";
+  UI.imagePrompt.style.height = "auto";
+  renderReferenceImages();
+}
+
 function createImageDownloadButton(turn) {
   const button = document.createElement("button");
   button.className = "copy-btn image-download-btn";
@@ -2475,6 +2557,8 @@ async function generateImage() {
   const referenceFiles = activeImageTab.references.map((entry) => entry.file);
   activeImageTab.turns.push(requestTurn);
   activeImageTab.sessionSaved = false;
+  if (activeImageTab.id === state.activeImageTabId) renderImageStage();
+  clearImageComposerAfterSend(activeImageTab);
 
   const controller = new AbortController();
   activeImageTab.controller = controller;
@@ -5230,6 +5314,7 @@ function setupEventHandlers() {
   });
 
   UI.budgetText.addEventListener("click", () => refreshBudget());
+  UI.updateDismissBtn.addEventListener("click", dismissExtensionUpdate);
   UI.panelModeBtn.addEventListener("click", togglePanelMode);
   UI.saveSessionBtn.addEventListener("click", downloadActiveSession);
   UI.clearBtn.addEventListener("click", clearConversation);
@@ -5428,8 +5513,10 @@ function setupEventHandlers() {
 
 async function bootstrap() {
   setupTooltips();
+  renderInstalledVersion();
   await initializeState();
   setupEventHandlers();
+  checkForExtensionUpdate().catch(() => {});
 
   if (!state.selectedApiKey) {
     await promptForApiKey(true);

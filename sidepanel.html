@@ -285,6 +285,18 @@
     .header-title:hover { opacity: 0.92; transform: translateY(-1px); }
     .header-title:active { transform: translateY(0) scale(0.98); }
 
+    .app-version {
+      padding: 2px 5px;
+      border: 1px solid rgba(255, 255, 255, 0.38);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 9px;
+      font-weight: 600;
+      line-height: 1.2;
+      letter-spacing: 0.02em;
+    }
+
     /* Animated brand mark (line-art key that draws itself in + pulsing sparkles) */
     .brand-mark {
       width: 22px;
@@ -884,6 +896,46 @@
       align-items: center;
       gap: 8px;
     }
+
+    .update-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-bottom: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1e3a8a;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .update-banner[hidden] { display: none; }
+    .update-banner svg { width: 16px; height: 16px; flex: 0 0 16px; }
+    .update-message { min-width: 0; flex: 1; }
+    .update-link {
+      flex: 0 0 auto;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: #2563eb;
+      color: #fff;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .update-link:hover { background: #1d4ed8; }
+    .update-dismiss {
+      width: 24px;
+      height: 24px;
+      flex: 0 0 24px;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #1e40af;
+      font: inherit;
+      font-size: 17px;
+      line-height: 24px;
+      cursor: pointer;
+    }
+    .update-dismiss:hover { background: #dbeafe; }
 
     .status-indicator {
       position: relative;
@@ -2535,6 +2587,7 @@
         <circle class="bm-node n2" cx="24" cy="6" r="1.4" fill="#e9d5ff"/>
       </svg>
       <span>Image Chatter</span>
+      <span class="app-version" id="extensionVersion"></span>
     </div>
     <div class="header-controls">
       <button class="icon-btn clear-btn" id="clearBtn" data-i18n-title="clear" title="清除">
@@ -2587,6 +2640,13 @@
       </button>
     </div>
   </div>
+
+  <aside class="update-banner" id="updateBanner" role="status" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+    <span class="update-message" id="updateMessage"></span>
+    <a class="update-link" id="updateLink" href="https://github.com/paulchi-intel/image-chatter/releases/latest" target="_blank" rel="noopener noreferrer" data-i18n="update-download">下載新版</a>
+    <button class="update-dismiss" id="updateDismissBtn" type="button" data-i18n-title="update-dismiss" data-i18n-aria-label="update-dismiss" title="忽略此版本" aria-label="忽略此版本">×</button>
+  </aside>
 
   <div class="status-bar">
     <span class="status-indicator" id="statusIndicator">
