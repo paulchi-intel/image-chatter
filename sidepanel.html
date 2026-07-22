@@ -26,6 +26,8 @@
       .mode-switch::before,
       .mode-btn,
       .mode-btn svg { transition-duration: 0.001ms !important; }
+      .empty-mark *,
+      .image-empty-mark * { animation-delay: 0ms !important; }
     }
 
     * {
@@ -284,6 +286,18 @@
     }
     .header-title:hover { opacity: 0.92; transform: translateY(-1px); }
     .header-title:active { transform: translateY(0) scale(0.98); }
+
+    .app-version {
+      padding: 2px 5px;
+      border: 1px solid rgba(255, 255, 255, 0.38);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 9px;
+      font-weight: 600;
+      line-height: 1.2;
+      letter-spacing: 0.02em;
+    }
 
     /* Animated brand mark (line-art key that draws itself in + pulsing sparkles) */
     .brand-mark {
@@ -616,6 +630,50 @@
       justify-content: flex-start;
     }
 
+    .layout-resizer {
+      position: relative;
+      z-index: 5;
+      width: 100%;
+      height: 9px;
+      flex: 0 0 9px;
+      border: 0;
+      padding: 0;
+      background: #fff;
+      cursor: row-resize;
+      touch-action: none;
+      outline: none;
+    }
+
+    .layout-resizer::before {
+      content: "";
+      position: absolute;
+      top: 4px;
+      right: 0;
+      left: 0;
+      height: 1px;
+      background: #d1d5db;
+      transition: height 80ms var(--e-standard),
+                  background-color 80ms var(--e-standard);
+    }
+
+    .layout-resizer:hover::before,
+    .layout-resizer:focus-visible::before,
+    .layout-resizer.active::before {
+      height: 3px;
+      top: 3px;
+      background: #3b82f6;
+    }
+
+    .layout-resizer:focus-visible {
+      box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.22);
+    }
+
+    body.resizing-layout,
+    body.resizing-layout * {
+      cursor: row-resize !important;
+      user-select: none !important;
+    }
+
     .image-prompt-tools {
       width: min(100%, 760px);
       order: 0;
@@ -705,7 +763,65 @@
       font-size: 12px;
     }
 
-    .image-empty svg { width: 48px; height: 48px; color: #a5b4fc; margin-bottom: 8px; }
+    .image-empty-mark {
+      width: 128px;
+      height: auto;
+      margin-bottom: 10px;
+      overflow: visible;
+    }
+
+    .image-empty-mark .draw {
+      stroke-dasharray: 320;
+      stroke-dashoffset: 320;
+      animation: svg-draw 0.9s var(--e-emphasized) forwards;
+    }
+
+    .image-empty-mark .draw.detail {
+      stroke-dasharray: 180;
+      stroke-dashoffset: 180;
+      animation-delay: 0.14s;
+    }
+
+    .image-empty-float {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: empty-float 5s ease-in-out infinite;
+    }
+
+    .image-empty-glow {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: empty-glow 5s ease-in-out infinite;
+    }
+
+    .image-empty-scene {
+      transform-box: fill-box;
+      transform-origin: center;
+      opacity: 0;
+      animation: image-scene-in 0.5s var(--e-emphasized) 0.42s forwards;
+    }
+
+    .image-empty-pop {
+      transform-box: fill-box;
+      transform-origin: center;
+      opacity: 0;
+      animation: empty-dot-in 0.45s var(--e-spring) 0.58s forwards;
+    }
+
+    .image-empty-spark {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: twinkle 2.4s ease-in-out infinite;
+    }
+
+    .image-empty-spark.s2 { animation-delay: 0.8s; }
+    .image-empty-spark.s3 { animation-delay: 1.45s; }
+
+    @keyframes image-scene-in {
+      from { opacity: 0; transform: scale(0.94); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
     .image-progress-spinner {
       width: 30px;
       height: 30px;
@@ -773,38 +889,45 @@
     }
 
     .image-compose {
-      padding: 12px 16px;
+      padding: 0;
       background: #fff;
-      border-top: 1px solid #e5e7eb;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      flex-shrink: 0;
+      gap: 0;
+      flex: 0 0 auto;
+      min-height: 66px;
+      max-height: 65%;
+      overflow: hidden;
     }
 
     .image-compose-main {
       display: flex;
-      align-items: stretch;
+      position: relative;
+      z-index: 1;
+      align-items: flex-end;
       gap: 8px;
       min-width: 0;
+      min-height: 66px;
+      padding: 12px 16px;
+      border-top: 1px solid #f3f4f6;
+      background: #fff;
+      flex: 1 0 66px;
     }
 
     .image-compose-settings {
       display: flex;
       align-items: flex-end;
       gap: 8px;
+      width: min(100%, 760px);
+      margin: 0 0 12px;
       min-width: 0;
+      flex: 0 0 auto;
     }
 
     .image-compose-options {
       flex: 1;
       grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr);
     }
-
-    .image-compose-toggle { flex: 0 0 29px; margin: 0 0 2px auto; }
-    .image-compose.collapsed .image-compose-toggle svg { transform: rotate(0); }
-    .image-compose.collapsed .image-compose-options,
-    .image-compose.collapsed .reference-list { display: none; }
 
     #addReferenceBtn {
       width: 42px;
@@ -818,13 +941,27 @@
     #addReferenceBtn svg { width: 18px; height: 18px; }
 
     .image-compose .reference-list {
-      max-height: 50px;
-      padding: 1px 0;
+      flex: 0 1 auto;
+      min-height: 0;
+      padding: 0 16px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: thin;
+      overscroll-behavior-x: contain;
+    }
+
+    .image-compose .reference-list::-webkit-scrollbar { height: 4px; }
+    .image-compose .reference-list::-webkit-scrollbar-track { background: transparent; }
+    .image-compose .reference-list::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: #cbd5e1;
     }
 
     .image-compose .reference-thumb img {
       cursor: pointer;
     }
+
+    .image-compose .reference-thumb { margin: 8px 0 4px; }
 
     .image-compose .reference-thumb img:focus-visible {
       outline: 2px solid #6366f1;
@@ -835,44 +972,54 @@
       width: auto;
       min-width: 0;
       flex: 1;
-      min-height: 58px;
-      max-height: 130px;
-      resize: vertical;
-      padding: 9px 11px;
+      min-height: 42px;
+      height: auto;
+      max-height: none;
+      align-self: stretch;
+      resize: none;
+      overflow-y: auto;
+      padding: 10px 14px;
       border: 2px solid #e5e7eb;
       border-radius: 8px;
       font: inherit;
-      font-size: 13px;
-      line-height: 1.45;
+      font-size: 14px;
     }
 
     #generateImageBtn {
-      min-width: 92px;
+      min-height: 42px;
       border: 0;
       border-radius: 8px;
       background: var(--brand-grad);
       color: #fff;
-      padding: 9px 13px;
+      padding: 10px 20px;
       font: inherit;
-      font-size: 13px;
-      font-weight: 700;
+      font-size: 14px;
+      font-weight: 600;
       cursor: pointer;
+      white-space: nowrap;
+      position: relative;
+      overflow: hidden;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 7px;
+      transition: transform var(--d-quick) var(--e-standard),
+                  box-shadow var(--d-std) var(--e-standard),
+                  opacity var(--d-quick) var(--e-standard);
     }
 
     #generateImageBtn svg { width: 16px; height: 16px; }
+    #generateImageBtn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+    }
+    #generateImageBtn:active:not(:disabled) { transform: translateY(0) scale(0.96); }
     #generateImageBtn:disabled,
-    .reference-add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .reference-add-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
     @media (max-width: 420px) {
       .image-control-grid { grid-template-columns: 1fr 1fr; }
       .image-field:first-child { grid-column: 1 / -1; }
-      .image-compose-main { flex-wrap: wrap; }
-      #imagePrompt { min-height: 64px; }
-      #generateImageBtn { min-height: 40px; flex: 1 0 100%; width: 100%; }
       .image-turn-output { max-height: calc(100vh - 475px); }
     }
 
@@ -886,6 +1033,46 @@
       align-items: center;
       gap: 8px;
     }
+
+    .update-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-bottom: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1e3a8a;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .update-banner[hidden] { display: none; }
+    .update-banner svg { width: 16px; height: 16px; flex: 0 0 16px; }
+    .update-message { min-width: 0; flex: 1; }
+    .update-link {
+      flex: 0 0 auto;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: #2563eb;
+      color: #fff;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .update-link:hover { background: #1d4ed8; }
+    .update-dismiss {
+      width: 24px;
+      height: 24px;
+      flex: 0 0 24px;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #1e40af;
+      font: inherit;
+      font-size: 17px;
+      line-height: 24px;
+      cursor: pointer;
+    }
+    .update-dismiss:hover { background: #dbeafe; }
 
     .status-indicator {
       position: relative;
@@ -1622,26 +1809,39 @@
 
     .chat-composer {
       background: white;
-      border-top: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      flex: 0 0 auto;
+      min-height: 66px;
+      max-height: 65%;
+      overflow: hidden;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .layout-resizer::before { transition: none; }
     }
 
     .chat-attachment {
-      display: block;
+      display: flex;
+      flex: 0 1 auto;
+      flex-direction: column;
       min-width: 0;
-      padding: 10px 16px 0;
+      min-height: 0;
+      padding: 0 16px;
+      overflow: hidden;
     }
 
     .chat-attachment[hidden] { display: none; }
 
     .chat-attachment-toolbar {
       display: flex;
+      flex: 0 0 auto;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 8px;
+      gap: 6px;
+      padding-top: 8px;
+      padding-bottom: 4px;
     }
-
-    .chat-attachment.collapsed .chat-attachment-toolbar { margin-bottom: 0; }
 
     .chat-attachment-toolbar-actions {
       display: flex;
@@ -1651,6 +1851,8 @@
     }
 
     .chat-attachment-summary {
+      flex: 0 1 auto;
+      max-width: 92px;
       min-width: 0;
       overflow: hidden;
       color: #4b5563;
@@ -1728,19 +1930,34 @@
 
     .chat-attachment-list {
       display: flex;
-      gap: 8px;
+      flex: 1 1 auto;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      min-height: 0;
       overflow-x: auto;
-      padding: 1px 1px 5px;
+      overflow-y: hidden;
+      padding: 1px 1px 4px;
       scrollbar-width: thin;
+      overscroll-behavior-x: contain;
+    }
+
+    .chat-attachment-list::-webkit-scrollbar { height: 4px; }
+    .chat-attachment-list::-webkit-scrollbar-track { background: transparent; }
+    .chat-attachment-list::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: #cbd5e1;
     }
 
     .chat-attachment-item {
       position: relative;
-      flex: 0 0 76px;
-      width: 76px;
-      padding: 4px;
+      flex: 0 0 58px;
+      width: 58px;
+      height: 50px;
+      padding: 3px;
       border: 1px solid #d1d5db;
       border-radius: 8px;
+      overflow: hidden;
       background: #fff;
     }
 
@@ -1749,22 +1966,35 @@
 
     .chat-attachment-item img {
       display: block;
-      width: 66px;
-      height: 52px;
+      width: 50px;
+      height: 42px;
       object-fit: cover;
-      border-radius: 6px;
+      border-radius: 5px;
       background: #f3f4f6;
+      cursor: pointer;
+    }
+
+    .chat-attachment-item img:focus-visible {
+      outline: 2px solid #6366f1;
+      outline-offset: -2px;
     }
 
     .chat-attachment-name {
       display: block;
-      margin-top: 4px;
+      position: absolute;
+      right: 3px;
+      bottom: 3px;
+      left: 3px;
       overflow: hidden;
-      color: #374151;
-      font-size: 9px;
+      padding: 1px 3px;
+      border-radius: 0 0 4px 4px;
+      background: linear-gradient(transparent, rgba(17, 24, 39, 0.78));
+      color: #fff;
+      font-size: 8px;
       font-weight: 700;
       text-overflow: ellipsis;
       white-space: nowrap;
+      pointer-events: none;
     }
 
     .chat-attachment-remove,
@@ -1818,7 +2048,13 @@
       padding: 12px 16px;
       background: white;
       display: flex;
+      position: relative;
+      z-index: 1;
+      align-items: flex-end;
       gap: 8px;
+      min-height: 66px;
+      flex: 1 0 66px;
+      border-top: 1px solid #f3f4f6;
     }
 
     #messageInput {
@@ -1831,7 +2067,10 @@
       font-size: 14px;
       font-family: inherit;
       resize: none;
-      max-height: 120px;
+      height: auto;
+      max-height: none;
+      align-self: stretch;
+      overflow-y: auto;
       transition: border-color 0.2s;
       min-height: 42px;
     }
@@ -1848,6 +2087,7 @@
     }
 
     #sendBtn {
+      min-height: 42px;
       padding: 10px 20px;
       background: var(--brand-grad);
       color: white;
@@ -2370,10 +2610,40 @@
       background: #fff;
       border-bottom: 2px solid #e5e7eb;
       flex-shrink: 0;
-      overflow-x: auto;
-      scrollbar-width: none;
+      overflow: hidden;
     }
-    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-scroll-viewport {
+      min-width: 0;
+      flex: 1;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      scroll-behavior: smooth;
+    }
+    .tab-scroll-viewport::-webkit-scrollbar { display: none; }
+    .tab-strip {
+      display: flex;
+      align-items: stretch;
+      min-width: max-content;
+      height: 100%;
+    }
+    .tab-scroll-btn {
+      width: 28px;
+      min-width: 28px;
+      padding: 0;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      background: #fff;
+      color: #6b7280;
+      font: inherit;
+      font-size: 18px;
+      cursor: pointer;
+      z-index: 2;
+    }
+    .tab-scroll-btn:hover:not(:disabled) { background: #eef2ff; color: #3b82f6; }
+    .tab-scroll-btn:disabled { cursor: default; color: #d1d5db; }
+    .tab-scroll-btn.no-overflow { visibility: hidden; }
     .tab-item {
       display: flex;
       align-items: center;
@@ -2507,6 +2777,7 @@
         <circle class="bm-node n2" cx="24" cy="6" r="1.4" fill="#e9d5ff"/>
       </svg>
       <span>Image Chatter</span>
+      <span class="app-version" id="extensionVersion"></span>
     </div>
     <div class="header-controls">
       <button class="icon-btn clear-btn" id="clearBtn" data-i18n-title="clear" title="清除">
@@ -2560,6 +2831,13 @@
     </div>
   </div>
 
+  <aside class="update-banner" id="updateBanner" role="status" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+    <span class="update-message" id="updateMessage"></span>
+    <a class="update-link" id="updateLink" href="https://github.com/paulchi-intel/image-chatter/releases/latest" target="_blank" rel="noopener noreferrer" data-i18n="update-download">下載新版</a>
+    <button class="update-dismiss" id="updateDismissBtn" type="button" data-i18n-title="update-dismiss" data-i18n-aria-label="update-dismiss" title="忽略此版本" aria-label="忽略此版本">×</button>
+  </aside>
+
   <div class="status-bar">
     <span class="status-indicator" id="statusIndicator">
       <span class="status-dot"></span>
@@ -2584,10 +2862,13 @@
         </div>
       </div>
 
-      <div class="chat-composer">
+      <div class="layout-resizer" id="chatLayoutResizer" role="separator" tabindex="0" aria-orientation="horizontal" aria-controls="messagesContainer chatComposer" aria-valuemin="15" aria-valuemax="65" aria-valuenow="0" data-i18n-title="resize-chat-layout" data-i18n-aria-label="resize-chat-layout" title="拖曳調整對話與輸入區比例" aria-label="拖曳調整對話與輸入區比例"></div>
+
+      <div class="chat-composer" id="chatComposer">
         <div class="chat-attachment" id="chatAttachment" hidden>
           <div class="chat-attachment-toolbar">
             <div class="chat-attachment-summary" id="chatAttachmentSummary"></div>
+            <div class="chat-attachment-list" id="chatAttachmentList"></div>
             <div class="chat-attachment-toolbar-actions">
               <div class="chat-analysis-mode" id="chatAnalysisMode" role="group" data-i18n-aria-label="analysis-mode">
                 <button id="combinedAnalysisBtn" type="button" data-mode="combined" data-i18n="analysis-combined">綜合分析</button>
@@ -2598,7 +2879,6 @@
               </button>
             </div>
           </div>
-          <div class="chat-attachment-list" id="chatAttachmentList"></div>
         </div>
         <div class="input-container">
           <button id="attachChatImageBtn" type="button" data-i18n-title="attach-chat-image" title="加入圖片">
@@ -2629,24 +2909,6 @@
     <div class="tab-bar image-tab-bar" id="imageTabBar"></div>
 
     <div class="image-stage" id="imageStage">
-      <div class="image-prompt-tools" id="imagePromptTools"></div>
-      <div class="image-empty" id="imageEmpty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-        <div class="empty-state-title" data-i18n="image-empty-title">開始生成圖片</div>
-        <div class="empty-state-text" data-i18n="image-empty-text">在下方輸入圖片描述；也可以先加入參考圖，再使用快速生成或生成模板。</div>
-      </div>
-      <div class="image-progress" id="imageProgress" hidden>
-        <div class="image-progress-spinner"></div>
-        <div class="image-progress-text" id="imageProgressText" data-i18n="image-generating">Generating image...</div>
-        <button class="image-cancel-btn" id="cancelImageBtn" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-          <span data-i18n="image-cancel">Cancel</span>
-        </button>
-      </div>
-      <div class="image-result" id="imageResult" hidden></div>
-    </div>
-
-    <div class="image-compose">
       <div class="image-compose-settings">
         <div class="image-control-grid image-compose-options">
           <div class="image-field">
@@ -2677,17 +2939,56 @@
             </select>
           </div>
         </div>
-        <button class="chat-attachment-toggle image-compose-toggle" id="imageComposeToggle" type="button" aria-expanded="true" data-i18n-title="image-compose-collapse" title="收合生成設定與參考圖">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>
+      </div>
+      <div class="image-prompt-tools" id="imagePromptTools"></div>
+      <div class="image-empty" id="imageEmpty">
+        <svg class="image-empty-mark" viewBox="0 0 120 104" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <defs>
+            <linearGradient id="imageEmptyGradient" x1="14" y1="14" x2="108" y2="92" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#3b82f6"/><stop offset="1" stop-color="#8b5cf6"/>
+            </linearGradient>
+            <linearGradient id="imageEmptySceneGradient" x1="29" y1="47" x2="91" y2="79" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#60a5fa" stop-opacity=".24"/><stop offset="1" stop-color="#a78bfa" stop-opacity=".42"/>
+            </linearGradient>
+            <radialGradient id="imageEmptyGlow" cx="50%" cy="48%" r="55%">
+              <stop stop-color="#a78bfa" stop-opacity=".45"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <ellipse class="image-empty-glow" cx="60" cy="54" rx="52" ry="42" fill="url(#imageEmptyGlow)"/>
+          <g class="image-empty-float">
+            <rect class="draw" x="16" y="19" width="88" height="66" rx="10" stroke="url(#imageEmptyGradient)" stroke-width="3.5"/>
+            <path class="image-empty-scene" d="M25 73 43 53l13 13 11-11 28 28H25Z" fill="url(#imageEmptySceneGradient)"/>
+            <path class="draw detail" d="m25 73 18-20 13 13 11-11 28 28" stroke="url(#imageEmptyGradient)" stroke-width="3"/>
+            <circle class="image-empty-pop" cx="39" cy="38" r="5" fill="#60a5fa"/>
+            <path class="image-empty-spark s1" d="m87 29 2.2 5.8L95 37l-5.8 2.2L87 45l-2.2-5.8L79 37l5.8-2.2Z" fill="#8b5cf6"/>
+          </g>
+          <path class="image-empty-spark s2" d="m108 14 1.4 3.6 3.6 1.4-3.6 1.4L108 24l-1.4-3.6L103 19l3.6-1.4Z" fill="#c4b5fd"/>
+          <circle class="image-empty-spark s3" cx="13" cy="22" r="2.4" fill="#93c5fd"/>
+        </svg>
+        <div class="empty-state-title" data-i18n="image-empty-title">開始生成圖片</div>
+        <div class="empty-state-text" data-i18n="image-empty-text">在下方輸入圖片描述；也可以先加入參考圖，再使用快速生成或生成模板。</div>
+      </div>
+      <div class="image-progress" id="imageProgress" hidden>
+        <div class="image-progress-spinner"></div>
+        <div class="image-progress-text" id="imageProgressText" data-i18n="image-generating">Generating image...</div>
+        <button class="image-cancel-btn" id="cancelImageBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          <span data-i18n="image-cancel">Cancel</span>
         </button>
       </div>
+      <div class="image-result" id="imageResult" hidden></div>
+    </div>
+
+    <div class="layout-resizer" id="imageLayoutResizer" role="separator" tabindex="0" aria-orientation="horizontal" aria-controls="imageStage imageCompose" aria-valuemin="15" aria-valuemax="65" aria-valuenow="0" data-i18n-title="resize-image-layout" data-i18n-aria-label="resize-image-layout" title="拖曳調整生成內容與輸入區比例" aria-label="拖曳調整生成內容與輸入區比例"></div>
+
+    <div class="image-compose" id="imageCompose">
       <div class="reference-list" id="referenceList" hidden></div>
       <div class="image-compose-main">
         <button class="reference-add-btn" id="addReferenceBtn" type="button" data-i18n-title="image-add-reference" title="參考圖">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/><path d="M17 3v6M14 6h6"/></svg>
         </button>
         <input id="referenceInput" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
-        <textarea id="imagePrompt" rows="2" data-i18n-placeholder="image-prompt-placeholder" placeholder="Describe the image..."></textarea>
+        <textarea id="imagePrompt" rows="1" data-i18n-placeholder="image-prompt-placeholder" placeholder="Describe the image..."></textarea>
         <button id="generateImageBtn" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.7 4.3L6 9l4.3 1.7L12 15l1.7-4.3L18 9l-4.3-1.7Z"/><path d="m5 15-.8 2.2L2 18l2.2.8L5 21l.8-2.2L8 18l-2.2-.8Z"/></svg>
           <span data-i18n="image-generate">Generate</span>

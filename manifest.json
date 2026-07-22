@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Image Chatter",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "GNAI image analysis for charts and slides, plus image generation with reference images.",
   "permissions": [
     "storage",

@@ -21,11 +21,32 @@ A Chrome extension for image analysis and image generation. Accepts GNAI API key
 
 ## Install
 
+Download the latest packaged version from [GitHub Releases](https://github.com/paulchi-intel/image-chatter/releases/latest), extract the ZIP, then:
+
 1. Open `chrome://extensions`.
 2. Enable Developer mode.
 3. Choose **Load unpacked**.
-4. Select the `reference/image-chatter` directory.
+4. Select the extracted `image-chatter` directory.
 5. Open Image Chatter and enter a GNAI API key.
+
+## Update
+
+Image Chatter checks the latest public GitHub Release at startup and shows a banner when a newer version is available. Update checks are cached for six hours, and dismissing the banner skips only that release version.
+
+To update an unpacked installation:
+
+1. Use the in-extension update banner or open [GitHub Releases](https://github.com/paulchi-intel/image-chatter/releases/latest).
+2. Download and extract the latest `image-chatter-v*.zip`.
+3. Replace the previously extracted extension files, keeping the same folder location.
+4. Open `chrome://extensions` and click **Reload** on Image Chatter.
+
+Extension conversations and settings are stored in Chrome storage and remain available when the same installed extension is reloaded.
+
+## Publish a Release
+
+1. Update `version` in `manifest.json` and commit the change.
+2. Create and push a matching tag, for example `v1.1.0`.
+3. The GitHub Actions release workflow validates the JavaScript, packages the extension, writes a SHA-256 checksum, and creates the GitHub Release automatically.
 
 ## Use
 
@@ -34,8 +55,9 @@ A Chrome extension for image analysis and image generation. Accepts GNAI API key
 1. Add one or more images through the composer button, drag and drop, or the clipboard.
 2. Choose **Combined analysis** for one response covering the full set, or **Per-image analysis** to apply the prompt separately to every image.
 3. Choose an image-analysis model, then select a quick question or enter a custom question.
-4. In per-image results, use **Follow up** on a card to focus on one image or **Compare all images** to restore the full-batch context.
-5. Adding another image after a question starts a new image context while keeping earlier messages visible.
+4. After sending, the composer attachment and prompt are cleared while the image remains in conversation context for text-only follow-up questions.
+5. In per-image results, use **Follow up** on a card to focus on one image or **Compare all images** to restore the full-batch context.
+6. Adding another image after a question starts a new image context while keeping earlier messages visible.
 
 ### Generate
 
@@ -43,6 +65,7 @@ A Chrome extension for image analysis and image generation. Accepts GNAI API key
 2. Select a verified generation model, size, quality, and output format.
 3. Optionally add one or more reference images.
 4. Enter a prompt and generate, cancel, download, regenerate, or reuse the result as a reference.
+5. After sending, the prompt and references move into the user message and the generation composer is cleared for the next request.
 
 ## Model Verification
 

@@ -11,7 +11,10 @@ const STORAGE_KEYS = {
   savedPrompts: "savedPrompts",
   imageSavedPrompts: "imageSavedPrompts",
   panelMode: "panelMode",
-  verifiedModels: "verifiedModels"
+  verifiedModels: "verifiedModels",
+  dismissedUpdateVersion: "dismissedUpdateVersion",
+  chatComposerRatio: "chatComposerRatio",
+  imageComposerRatio: "imageComposerRatio"
 };
 
 // Special sentinel value used as a model-selector option that triggers
@@ -49,10 +52,9 @@ const TRANSLATIONS = {
     "image-prompt-placeholder": "描述要生成的圖片...",
     "image-generate": "生成",
     "image-no-references": "尚未加入參考圖",
-    "image-new-tab-label": "圖片 {number}",
     "new-tab": "新增分頁",
-    "image-compose-expand": "展開生成設定與參考圖",
-    "image-compose-collapse": "收合生成設定與參考圖",
+    "tab-scroll-left": "向左捲動分頁",
+    "tab-scroll-right": "向右捲動分頁",
     "status-reference-attached": "已加入參考圖",
     "error-reference-type": "參考圖只支援 PNG、JPEG 或 WebP",
     "error-reference-count": "每個生成分頁最多只能加入 {max} 張參考圖",
@@ -66,6 +68,12 @@ const TRANSLATIONS = {
     "load-page": "載入網頁",
     "load-clipboard": "載入剪貼簿",
     "status-ready": "準備就緒",
+    "resize-chat-layout": "拖曳或使用方向鍵調整對話與輸入區比例",
+    "resize-image-layout": "拖曳或使用方向鍵調整生成內容與輸入區比例",
+    "current-version": "目前版本 v{version}",
+    "update-available": "Image Chatter v{version} 已可下載。",
+    "update-download": "下載新版",
+    "update-dismiss": "忽略此版本",
     "status-loading-page": "載入網頁中...",
     "status-loading-clipboard": "載入剪貼簿中...",
     "status-page-loaded": "網頁已載入",
@@ -183,7 +191,6 @@ const TRANSLATIONS = {
     "dialog-cancel": "取消",
     "clipboard-tab-label": "剪貼簿內容",
     "empty-tab-label": "empty",
-    "new-tab-label": "新對話 {number}",
     "tab-rename-hint": "雙擊可重新命名"
   },
   "zh-CN": {
@@ -201,10 +208,9 @@ const TRANSLATIONS = {
     "image-prompt-placeholder": "描述要生成的图片...",
     "image-generate": "生成",
     "image-no-references": "尚未加入参考图",
-    "image-new-tab-label": "图片 {number}",
     "new-tab": "新建标签页",
-    "image-compose-expand": "展开生成设置与参考图",
-    "image-compose-collapse": "收合生成设置与参考图",
+    "tab-scroll-left": "向左滚动标签页",
+    "tab-scroll-right": "向右滚动标签页",
     "status-reference-attached": "已加入参考图",
     "error-reference-type": "参考图只支持 PNG、JPEG 或 WebP",
     "error-reference-count": "每个生成标签页最多只能加入 {max} 张参考图",
@@ -218,6 +224,12 @@ const TRANSLATIONS = {
     "load-page": "载入网页",
     "load-clipboard": "载入剪贴板",
     "status-ready": "准备就绪",
+    "resize-chat-layout": "拖动或使用方向键调整对话与输入区比例",
+    "resize-image-layout": "拖动或使用方向键调整生成内容与输入区比例",
+    "current-version": "当前版本 v{version}",
+    "update-available": "Image Chatter v{version} 已可下载。",
+    "update-download": "下载新版",
+    "update-dismiss": "忽略此版本",
     "status-loading-page": "载入网页中...",
     "status-loading-clipboard": "载入剪贴板中...",
     "status-page-loaded": "网页已载入",
@@ -335,7 +347,6 @@ const TRANSLATIONS = {
     "dialog-cancel": "取消",
     "clipboard-tab-label": "剪贴板内容",
     "empty-tab-label": "empty",
-    "new-tab-label": "新对话 {number}",
     "tab-rename-hint": "双击可重新命名",
     "copy": "复制",
     "copied": "已复制"
@@ -355,10 +366,9 @@ const TRANSLATIONS = {
     "image-prompt-placeholder": "Describe the image...",
     "image-generate": "Generate",
     "image-no-references": "No reference images",
-    "image-new-tab-label": "Image {number}",
     "new-tab": "New tab",
-    "image-compose-expand": "Expand generation settings and references",
-    "image-compose-collapse": "Collapse generation settings and references",
+    "tab-scroll-left": "Scroll tabs left",
+    "tab-scroll-right": "Scroll tabs right",
     "status-reference-attached": "Reference image attached",
     "error-reference-type": "Reference images must be PNG, JPEG, or WebP",
     "error-reference-count": "Each generation tab can contain up to {max} reference images",
@@ -372,6 +382,12 @@ const TRANSLATIONS = {
     "load-page": "Load Page",
     "load-clipboard": "Load Clipboard",
     "status-ready": "Ready",
+    "resize-chat-layout": "Drag or use the arrow keys to resize the conversation and composer",
+    "resize-image-layout": "Drag or use the arrow keys to resize the generation history and composer",
+    "current-version": "Current version v{version}",
+    "update-available": "Image Chatter v{version} is available.",
+    "update-download": "Download update",
+    "update-dismiss": "Skip this version",
     "status-loading-page": "Loading page...",
     "status-loading-clipboard": "Loading clipboard...",
     "status-page-loaded": "Page loaded",
@@ -489,7 +505,6 @@ const TRANSLATIONS = {
     "dialog-cancel": "Cancel",
     "clipboard-tab-label": "Clipboard",
     "empty-tab-label": "empty",
-    "new-tab-label": "New chat {number}",
     "tab-rename-hint": "Double-click to rename",
     "copy": "Copy",
     "copied": "Copied"
@@ -586,6 +601,11 @@ Object.entries(IMAGE_TRANSLATIONS).forEach(([language, values]) => Object.assign
 
 const UI = {
   headerTitle: document.getElementById("headerTitle"),
+  extensionVersion: document.getElementById("extensionVersion"),
+  updateBanner: document.getElementById("updateBanner"),
+  updateMessage: document.getElementById("updateMessage"),
+  updateLink: document.getElementById("updateLink"),
+  updateDismissBtn: document.getElementById("updateDismissBtn"),
   panelModeBtn: document.getElementById("panelModeBtn"),
   clearBtn: document.getElementById("clearBtn"),
   saveSessionBtn: document.getElementById("saveSessionBtn"),
@@ -594,6 +614,9 @@ const UI = {
   statusText: document.getElementById("statusText"),
   budgetText: document.getElementById("budgetText"),
   messagesContainer: document.getElementById("messagesContainer"),
+  chatContainer: document.querySelector(".chat-container"),
+  chatComposer: document.getElementById("chatComposer"),
+  chatLayoutResizer: document.getElementById("chatLayoutResizer"),
   messageInput: document.getElementById("messageInput"),
   sendBtn: document.getElementById("sendBtn"),
   attachChatImageBtn: document.getElementById("attachChatImageBtn"),
@@ -609,10 +632,10 @@ const UI = {
   imageModeBtn: document.getElementById("imageModeBtn"),
   chatPanel: document.getElementById("chatPanel"),
   imagePanel: document.getElementById("imagePanel"),
+  imageCompose: document.getElementById("imageCompose"),
+  imageLayoutResizer: document.getElementById("imageLayoutResizer"),
   imageTabBar: document.getElementById("imageTabBar"),
   imagePromptTools: document.getElementById("imagePromptTools"),
-  imageCompose: document.querySelector(".image-compose"),
-  imageComposeToggle: document.getElementById("imageComposeToggle"),
   imageStage: document.getElementById("imageStage"),
   imageSize: document.getElementById("imageSize"),
   imageQuality: document.getElementById("imageQuality"),
@@ -658,6 +681,8 @@ const UI = {
   confirmSaveCancelBtn: document.getElementById("confirmSaveCancelBtn")
 };
 
+let availableUpdate = null;
+
 // When running as a popup window, background embeds the source browser windowId
 // in the URL (?srcWindowId=N) so we can call sidePanel.open() synchronously
 // inside the user-gesture handler (before any await breaks the gesture context).
@@ -691,6 +716,8 @@ let state = {
   nextTabId: 1,
   activeImageTabId: 0,
   nextImageTabId: 1,
+  chatComposerRatio: null,
+  imageComposerRatio: null,
 };
 
 function createImageTab(id, saved = {}) {
@@ -700,7 +727,7 @@ function createImageTab(id, saved = {}) {
     size: saved.size || "1024x1024",
     quality: saved.quality || "medium",
     format: saved.format || "png",
-    composeCollapsed: Boolean(saved.composeCollapsed),
+    sessionSaved: Boolean(saved.sessionSaved),
     customLabel: saved.customLabel || null,
     autoLabel: saved.autoLabel || null,
     savedReferenceIds: Array.isArray(saved.referenceIds) ? saved.referenceIds.filter(Boolean) : [],
@@ -1047,6 +1074,42 @@ function serializeChatImageGroup(group) {
   };
 }
 
+function inferChatImageGroupFromMessages(messages) {
+  const list = Array.isArray(messages) ? messages : [];
+  let userIndex = -1;
+  for (let index = list.length - 1; index >= 0; index--) {
+    if (list[index]?.role === "user" && collectMessageImageIds(list[index]).length) {
+      userIndex = index;
+      break;
+    }
+  }
+  if (userIndex < 0) return null;
+
+  const userMessage = list[userIndex];
+  const images = collectMessageImageIds(userMessage)
+    .map((id) => chatImageAssets.get(id))
+    .filter(Boolean);
+  if (!images.length) return null;
+
+  const mode = userMessage.analysisMode === "per-image" ? "per-image" : "combined";
+  const group = createChatImageGroup(images, mode);
+  group.contextStartIndex = userIndex;
+  group.initialPrompt = userMessage.content || "";
+  group.initialMode = mode;
+  group.batchId = userMessage.batchId || null;
+  if (group.batchId) {
+    const resultIndex = list.findIndex((message, index) => (
+      index > userIndex
+      && message.batchId === group.batchId
+      && message.analysisMode === "per-image-results"
+    ));
+    group.scopeStartIndex = resultIndex >= 0 ? resultIndex + 1 : userIndex + 1;
+  } else {
+    group.scopeStartIndex = userIndex;
+  }
+  return group;
+}
+
 function normalizeInterruptedBatchMessages(messages) {
   (messages || []).forEach((message) => {
     if (message?.analysisMode !== "per-image-results" || !Array.isArray(message.results)) return;
@@ -1076,11 +1139,23 @@ async function hydrateChatImagesForTabs() {
   chatImagesByTab.clear();
   tabs.forEach((tab) => {
     const savedGroup = tab.activeImageGroup || null;
-    const activeIds = Array.isArray(savedGroup?.imageIds)
+    let activeIds = Array.isArray(savedGroup?.imageIds)
       ? savedGroup.imageIds
       : tab.activeImageId ? [tab.activeImageId] : [];
+    const savedImagesAreReferenced = (tab.messages || []).some((message) => (
+      collectMessageImageIds(message).some((id) => activeIds.includes(id))
+    ));
+    if (activeIds.length && !savedImagesAreReferenced && savedGroup?.contextStartIndex != null) {
+      // A request may have been interrupted after hiding the composer attachment
+      // but before its user message was committed. Restore it as a pending attachment.
+      savedGroup.contextStartIndex = null;
+    }
     const images = activeIds.map((id) => chatImageAssets.get(id)).filter(Boolean);
-    if (!images.length) return;
+    if (!images.length) {
+      const inferredGroup = inferChatImageGroupFromMessages(tab.messages);
+      if (inferredGroup) chatImagesByTab.set(tab.id, inferredGroup);
+      return;
+    }
     const fallbackIndex = (tab.messages || []).findIndex((message) => (
       collectMessageImageIds(message).some((id) => activeIds.includes(id))
     ));
@@ -1277,12 +1352,12 @@ function updateUILanguage() {
 
   UI.languageSelect.value = state.currentLanguage;
   updatePanelModeBtn();
+  renderUpdateBanner();
 
   // Re-render the model selector so dynamically built options (e.g. the
   // "verify models" action) pick up the newly selected language.
   renderModelOptions();
   renderReferenceImages();
-  renderImageComposeState();
   renderImageTabBar();
   renderChatImageAttachment();
   renderMessages();
@@ -1392,6 +1467,191 @@ async function sendRuntimeMessage(payload, timeoutMs = RUNTIME_MESSAGE_TIMEOUT_M
   });
 }
 
+function renderInstalledVersion() {
+  const version = chrome.runtime.getManifest().version;
+  UI.extensionVersion.textContent = `v${version}`;
+  UI.extensionVersion.title = t("current-version", { version });
+}
+
+function renderUpdateBanner() {
+  renderInstalledVersion();
+  if (!availableUpdate?.latestVersion) {
+    UI.updateBanner.hidden = true;
+    return;
+  }
+
+  UI.updateMessage.textContent = t("update-available", { version: availableUpdate.latestVersion });
+  UI.updateLink.href = availableUpdate.releaseUrl;
+  UI.updateBanner.hidden = false;
+}
+
+async function checkForExtensionUpdate(force = false) {
+  renderInstalledVersion();
+  const result = await sendRuntimeMessage({ type: "CHECK_EXTENSION_UPDATE", force });
+  if (!result?.ok || !result.updateAvailable || !result.latestVersion) return;
+
+  const stored = await chrome.storage.local.get(STORAGE_KEYS.dismissedUpdateVersion);
+  if (stored[STORAGE_KEYS.dismissedUpdateVersion] === result.latestVersion) return;
+
+  availableUpdate = {
+    latestVersion: result.latestVersion,
+    releaseUrl: /^https:\/\/github\.com\/paulchi-intel\/image-chatter\/releases\//.test(result.releaseUrl || "")
+      ? result.releaseUrl
+      : "https://github.com/paulchi-intel/image-chatter/releases/latest"
+  };
+  renderUpdateBanner();
+}
+
+async function dismissExtensionUpdate() {
+  if (!availableUpdate?.latestVersion) return;
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.dismissedUpdateVersion]: availableUpdate.latestVersion
+  });
+  availableUpdate = null;
+  renderUpdateBanner();
+}
+
+const MIN_COMPOSER_RATIO = 0.15;
+const MAX_COMPOSER_RATIO = 0.65;
+const COMPOSER_RATIO_STEP = 0.05;
+
+function normalizeComposerRatio(value) {
+  const ratio = Number(value);
+  if (!Number.isFinite(ratio)) return null;
+  return Math.min(MAX_COMPOSER_RATIO, Math.max(MIN_COMPOSER_RATIO, ratio));
+}
+
+function getLayoutSplitHeight(config) {
+  const upperRect = config.upper.getBoundingClientRect();
+  const lowerRect = config.lower.getBoundingClientRect();
+  return Math.max(0, lowerRect.bottom - upperRect.top);
+}
+
+function getCurrentComposerRatio(config) {
+  const totalHeight = getLayoutSplitHeight(config);
+  if (!totalHeight) return normalizeComposerRatio(state[config.stateKey]) || config.defaultRatio;
+  return normalizeComposerRatio(config.lower.getBoundingClientRect().height / totalHeight) || config.defaultRatio;
+}
+
+function applyComposerRatio(config, value, persist = false) {
+  const ratio = normalizeComposerRatio(value);
+  if (ratio == null) return;
+  const totalHeight = getLayoutSplitHeight(config);
+  if (totalHeight > 0) config.lower.style.flexBasis = `${Math.round(totalHeight * ratio)}px`;
+  state[config.stateKey] = ratio;
+  const percent = Math.round(ratio * 100);
+  config.handle.setAttribute("aria-valuenow", String(percent));
+  config.handle.setAttribute("aria-valuetext", `${percent}%`);
+  if (persist) {
+    chrome.storage.local.set({ [config.storageKey]: ratio }).catch(() => {});
+  }
+}
+
+function setupLayoutResizer(config) {
+  if (!config.handle || !config.upper || !config.lower) return;
+  let dragging = false;
+  let pendingClientY = null;
+  let frameId = 0;
+
+  const ratioFromClientY = (clientY) => {
+    const upperRect = config.upper.getBoundingClientRect();
+    const lowerRect = config.lower.getBoundingClientRect();
+    const totalHeight = Math.max(1, lowerRect.bottom - upperRect.top);
+    return normalizeComposerRatio((lowerRect.bottom - clientY) / totalHeight);
+  };
+
+  const flushPointerUpdate = () => {
+    frameId = 0;
+    if (pendingClientY == null) return;
+    const ratio = ratioFromClientY(pendingClientY);
+    pendingClientY = null;
+    applyComposerRatio(config, ratio);
+  };
+
+  const queuePointerUpdate = (clientY) => {
+    pendingClientY = clientY;
+    if (!frameId) frameId = requestAnimationFrame(flushPointerUpdate);
+  };
+
+  const finishDragging = (event) => {
+    if (!dragging) return;
+    if (event?.clientY != null) pendingClientY = event.clientY;
+    if (frameId) cancelAnimationFrame(frameId);
+    flushPointerUpdate();
+    dragging = false;
+    config.handle.classList.remove("active");
+    document.body.classList.remove("resizing-layout");
+    applyComposerRatio(config, state[config.stateKey] || getCurrentComposerRatio(config), true);
+    if (event?.pointerId != null && config.handle.hasPointerCapture?.(event.pointerId)) {
+      config.handle.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  config.handle.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || !event.isPrimary || dragging) return;
+    event.preventDefault();
+    dragging = true;
+    config.handle.classList.add("active");
+    document.body.classList.add("resizing-layout");
+    config.handle.setPointerCapture(event.pointerId);
+    queuePointerUpdate(event.clientY);
+  });
+  config.handle.addEventListener("pointermove", (event) => {
+    if (dragging) queuePointerUpdate(event.clientY);
+  });
+  config.handle.addEventListener("pointerup", finishDragging);
+  config.handle.addEventListener("pointercancel", finishDragging);
+  config.handle.addEventListener("lostpointercapture", finishDragging);
+  window.addEventListener("blur", finishDragging);
+
+  config.handle.addEventListener("keydown", (event) => {
+    if (!["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const current = normalizeComposerRatio(state[config.stateKey]) || getCurrentComposerRatio(config);
+    const step = event.shiftKey ? COMPOSER_RATIO_STEP * 2 : COMPOSER_RATIO_STEP;
+    const next = event.key === "Home"
+      ? MIN_COMPOSER_RATIO
+      : event.key === "End"
+        ? MAX_COMPOSER_RATIO
+        : current + (event.key === "ArrowUp" ? step : -step);
+    applyComposerRatio(config, next, true);
+  });
+
+  const savedRatio = normalizeComposerRatio(state[config.stateKey]);
+  requestAnimationFrame(() => {
+    applyComposerRatio(config, savedRatio || getCurrentComposerRatio(config));
+  });
+
+  if (typeof ResizeObserver === "function") {
+    const observer = new ResizeObserver(() => {
+      const ratio = normalizeComposerRatio(state[config.stateKey]);
+      if (ratio != null && !dragging) applyComposerRatio(config, ratio);
+    });
+    observer.observe(config.container);
+  }
+}
+
+function setupLayoutResizers() {
+  setupLayoutResizer({
+    container: UI.chatContainer,
+    upper: UI.messagesContainer,
+    lower: UI.chatComposer,
+    handle: UI.chatLayoutResizer,
+    stateKey: "chatComposerRatio",
+    storageKey: STORAGE_KEYS.chatComposerRatio,
+    defaultRatio: 0.24
+  });
+  setupLayoutResizer({
+    container: UI.imagePanel,
+    upper: UI.imageStage,
+    lower: UI.imageCompose,
+    handle: UI.imageLayoutResizer,
+    stateKey: "imageComposerRatio",
+    storageKey: STORAGE_KEYS.imageComposerRatio,
+    defaultRatio: 0.22
+  });
+}
+
 function isValidApiKey(key) {
   return typeof key === "string" && key.trim().length > 0 && !key.trim().startsWith("pak_");
 }
@@ -1425,9 +1685,10 @@ function readFileAsDataUrl(file) {
 function renderChatImageAttachment() {
   const group = getChatImageGroup();
   const images = group?.images || [];
-  UI.chatAttachment.hidden = images.length === 0;
+  const hasPendingImages = images.length > 0 && group.contextStartIndex == null;
+  UI.chatAttachment.hidden = !hasPendingImages;
   UI.chatAttachmentList.textContent = "";
-  if (!images.length) return;
+  if (!hasPendingImages) return;
 
   UI.chatAttachment.classList.toggle("collapsed", Boolean(group.collapsed));
   UI.chatAttachmentToggle.setAttribute("aria-expanded", String(!group.collapsed));
@@ -1436,15 +1697,11 @@ function renderChatImageAttachment() {
   UI.chatAttachmentToggle.setAttribute("data-i18n-title", toggleKey);
   UI.chatAttachmentToggle.setAttribute("aria-label", t(toggleKey));
 
-  const contextText = group.focusImageId
-    ? t("context-single", { name: images.find((image) => image.id === group.focusImageId)?.name || "" })
-    : group.contextStartIndex != null
-      ? t("context-all")
-      : t("attachment-count", { count: String(images.length), max: String(MAX_CHAT_IMAGES) });
+  const contextText = t("attachment-count", { count: String(images.length), max: String(MAX_CHAT_IMAGES) });
   UI.chatAttachmentSummary.textContent = contextText;
   UI.combinedAnalysisBtn.classList.toggle("active", group.analysisMode === "combined");
   UI.perImageAnalysisBtn.classList.toggle("active", group.analysisMode === "per-image");
-  const modeLocked = group.contextStartIndex != null;
+  const modeLocked = false;
   UI.combinedAnalysisBtn.disabled = modeLocked;
   UI.perImageAnalysisBtn.disabled = modeLocked;
 
@@ -1458,9 +1715,16 @@ function renderChatImageAttachment() {
     const preview = document.createElement("img");
     preview.src = image.dataUrl;
     preview.alt = image.name;
-    preview.title = t("open-image-tab");
-    preview.setAttribute("data-i18n-title", "open-image-tab");
+    preview.tabIndex = 0;
+    preview.setAttribute("role", "button");
+    preview.title = `${image.name}\n${t("open-image-tab")}`;
+    preview.setAttribute("aria-label", `${image.name}. ${t("open-image-tab")}`);
     preview.addEventListener("click", () => openMessageImageTab(image.id));
+    preview.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      openMessageImageTab(image.id);
+    });
 
     const name = document.createElement("span");
     name.className = "chat-attachment-name";
@@ -1703,7 +1967,11 @@ async function removeChatImage(imageId) {
   const [image] = group.images.splice(index, 1);
   if (group.contextStartIndex == null) await deleteChatImageAsset(image.id);
   if (group.focusImageId === image.id) group.focusImageId = null;
-  if (!group.images.length) chatImagesByTab.delete(state.activeTabId);
+  if (!group.images.length) {
+    chatImagesByTab.delete(state.activeTabId);
+    const previousContext = inferChatImageGroupFromMessages(state.messages);
+    if (previousContext) chatImagesByTab.set(state.activeTabId, previousContext);
+  }
   renderChatImageAttachment();
   renderMessages();
   await saveState();
@@ -1731,7 +1999,7 @@ function serializeImageTab(tab) {
     size: tab.size || "1024x1024",
     quality: tab.quality || "medium",
     format: tab.format || "png",
-    composeCollapsed: Boolean(tab.composeCollapsed),
+    sessionSaved: Boolean(tab.sessionSaved),
     customLabel: tab.customLabel || null,
     autoLabel: tab.autoLabel || null,
     referenceIds: tab.references.map((reference) => reference.id).filter(Boolean),
@@ -1762,8 +2030,7 @@ function getImageTabFullLabel(tab) {
   if (tab.customLabel) return tab.customLabel.trim().replace(/\s+/g, " ");
   if (tab.autoLabel) return tab.autoLabel.trim().replace(/\s+/g, " ");
   if (tab.prompt) return tab.prompt.trim().replace(/\s+/g, " ");
-  const tabNumber = Math.max(imageTabs.findIndex((item) => item.id === tab.id) + 1, 1);
-  return t("image-new-tab-label", { number: String(tabNumber) });
+  return t("empty-tab-label");
 }
 
 function startImageTabRename(tab, label, button) {
@@ -1794,11 +2061,113 @@ function startImageTabRename(tab, label, button) {
   input.addEventListener("dblclick", (event) => event.stopPropagation());
 }
 
+function createScrollableTabBar(bar, onAdd, addDisabled = false) {
+  bar.replaceChildren();
+
+  const previous = document.createElement("button");
+  previous.className = "tab-scroll-btn tab-scroll-prev";
+  previous.type = "button";
+  previous.textContent = "\u2039";
+  previous.title = t("tab-scroll-left");
+  previous.setAttribute("aria-label", t("tab-scroll-left"));
+
+  const viewport = document.createElement("div");
+  viewport.className = "tab-scroll-viewport";
+  viewport.tabIndex = 0;
+
+  const strip = document.createElement("div");
+  strip.className = "tab-strip";
+  strip.setAttribute("role", "tablist");
+  viewport.appendChild(strip);
+
+  const next = document.createElement("button");
+  next.className = "tab-scroll-btn tab-scroll-next";
+  next.type = "button";
+  next.textContent = "\u203a";
+  next.title = t("tab-scroll-right");
+  next.setAttribute("aria-label", t("tab-scroll-right"));
+
+  const add = document.createElement("button");
+  add.className = "tab-add";
+  add.type = "button";
+  add.textContent = "+";
+  add.disabled = addDisabled;
+  add.title = t("new-tab");
+  add.setAttribute("aria-label", t("new-tab"));
+  add.setAttribute("data-i18n-title", "new-tab");
+  add.addEventListener("click", onAdd);
+
+  const updateControls = () => {
+    const maxScroll = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+    const hasOverflow = maxScroll > 1;
+    previous.classList.toggle("no-overflow", !hasOverflow);
+    next.classList.toggle("no-overflow", !hasOverflow);
+    previous.disabled = !hasOverflow || viewport.scrollLeft <= 1;
+    next.disabled = !hasOverflow || viewport.scrollLeft >= maxScroll - 1;
+  };
+
+  const scrollByPage = (direction) => {
+    const distance = Math.max(120, Math.round(viewport.clientWidth * 0.72));
+    viewport.scrollBy({ left: direction * distance, behavior: "smooth" });
+  };
+  previous.addEventListener("click", () => scrollByPage(-1));
+  next.addEventListener("click", () => scrollByPage(1));
+  viewport.addEventListener("scroll", updateControls, { passive: true });
+  viewport.addEventListener("wheel", (event) => {
+    if (Math.abs(event.deltaY) <= Math.abs(event.deltaX) || viewport.scrollWidth <= viewport.clientWidth) return;
+    event.preventDefault();
+    viewport.scrollLeft += event.deltaY;
+  }, { passive: false });
+  viewport.addEventListener("keydown", (event) => {
+    if (event.target !== viewport || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === "Home") viewport.scrollTo({ left: 0, behavior: "smooth" });
+    else if (event.key === "End") viewport.scrollTo({ left: viewport.scrollWidth, behavior: "smooth" });
+    else scrollByPage(event.key === "ArrowLeft" ? -1 : 1);
+  });
+
+  if (typeof ResizeObserver === "function") {
+    const resizeObserver = new ResizeObserver(() => {
+      if (!viewport.isConnected) {
+        resizeObserver.disconnect();
+        return;
+      }
+      updateControls();
+    });
+    resizeObserver.observe(viewport);
+  }
+
+  bar.append(previous, viewport, next, add);
+
+  const finish = () => requestAnimationFrame(() => {
+    const active = strip.querySelector(".tab-item.active");
+    if (active) {
+      const left = active.offsetLeft;
+      const right = left + active.offsetWidth;
+      let targetScroll = viewport.scrollLeft;
+      if (left < viewport.scrollLeft) targetScroll = left;
+      else if (right > viewport.scrollLeft + viewport.clientWidth) {
+        targetScroll = right - viewport.clientWidth;
+      }
+      if (targetScroll !== viewport.scrollLeft) {
+        const previousBehavior = viewport.style.scrollBehavior;
+        viewport.style.scrollBehavior = "auto";
+        viewport.scrollLeft = targetScroll;
+        requestAnimationFrame(() => { viewport.style.scrollBehavior = previousBehavior; });
+      }
+    }
+    updateControls();
+  });
+
+  return { strip, viewport, finish };
+}
+
 function renderImageTabBar() {
   const bar = UI.imageTabBar;
   if (!bar) return;
-  bar.textContent = "";
   const locked = imageTabs.some((tab) => tab.busy);
+  const tabBar = createScrollableTabBar(bar, addImageTab, locked);
+  const strip = tabBar.strip;
   let dragSourceId = null;
 
   imageTabs.forEach((tab) => {
@@ -1848,7 +2217,7 @@ function renderImageTabBar() {
       });
       button.addEventListener("dragend", () => {
         button.classList.remove("dragging");
-        bar.querySelectorAll(".tab-item").forEach((item) => item.classList.remove("drag-over"));
+        strip.querySelectorAll(".tab-item").forEach((item) => item.classList.remove("drag-over"));
       });
       button.addEventListener("dragover", (event) => {
         event.preventDefault();
@@ -1869,18 +2238,9 @@ function renderImageTabBar() {
         saveState();
       });
     }
-    bar.appendChild(button);
+    strip.appendChild(button);
   });
-
-  const addButton = document.createElement("button");
-  addButton.className = "tab-add";
-  addButton.type = "button";
-  addButton.textContent = "+";
-  addButton.title = t("new-tab");
-  addButton.setAttribute("aria-label", t("new-tab"));
-  addButton.setAttribute("data-i18n-title", "new-tab");
-  addButton.addEventListener("click", addImageTab);
-  bar.appendChild(addButton);
+  tabBar.finish();
 }
 
 function loadActiveImageTab() {
@@ -1890,31 +2250,11 @@ function loadActiveImageTab() {
   UI.imageSize.value = tab.size || "1024x1024";
   UI.imageQuality.value = tab.quality || "medium";
   UI.imageFormat.value = tab.format || "png";
-  renderImageComposeState();
   renderImageTabBar();
   renderReferenceImages();
   UI.imageProgressText.textContent = tab.progressText || t("image-generating");
   refreshImageBusyUI();
   setStatus(tab.busy ? "loading" : "ready", tab.busy ? UI.imageProgressText.textContent : t("status-ready"));
-}
-
-function renderImageComposeState() {
-  const tab = getActiveImageTab();
-  const collapsed = Boolean(tab?.composeCollapsed);
-  UI.imageCompose.classList.toggle("collapsed", collapsed);
-  UI.imageComposeToggle.setAttribute("aria-expanded", String(!collapsed));
-  const key = collapsed ? "image-compose-expand" : "image-compose-collapse";
-  UI.imageComposeToggle.title = t(key);
-  UI.imageComposeToggle.setAttribute("data-i18n-title", key);
-  UI.imageComposeToggle.setAttribute("aria-label", t(key));
-}
-
-async function toggleImageCompose() {
-  const tab = getActiveImageTab();
-  if (!tab) return;
-  tab.composeCollapsed = !tab.composeCollapsed;
-  renderImageComposeState();
-  await saveState();
 }
 
 async function addImageTab() {
@@ -1962,10 +2302,22 @@ async function deleteImageTabAssets(tab) {
 }
 
 async function closeImageTab(id) {
-  const index = imageTabs.findIndex((tab) => tab.id === id);
+  let index = imageTabs.findIndex((tab) => tab.id === id);
   if (index < 0) return;
   if (imageTabs[index].busy) return;
   commitActiveImageTab();
+
+  const tab = imageTabs[index];
+  const hasUnsaved = tab.turns.length > 0 && !tab.sessionSaved;
+  if (hasUnsaved) {
+    if (id !== state.activeImageTabId) await switchImageTab(id);
+    const choice = await showConfirmSaveDialog();
+    if (choice === "cancel") return;
+    if (choice === "yes") await downloadImageSession(tab);
+    index = imageTabs.findIndex((item) => item.id === id);
+    if (index < 0) return;
+  }
+
   const [removed] = imageTabs.splice(index, 1);
   releaseImageTabObjects(removed);
   await deleteImageTabAssets(removed);
@@ -2126,11 +2478,6 @@ async function addReferenceFiles(files) {
       }
     }
   }
-  if (added) {
-    const tab = getActiveImageTab();
-    if (tab) tab.composeCollapsed = false;
-    renderImageComposeState();
-  }
   renderReferenceImages();
   if (added) await saveState();
   if (limitReached) {
@@ -2193,6 +2540,20 @@ async function removeReferenceImage(index) {
   if (removed?.id && !usedByHistory) await deleteChatImageAsset(removed.id);
   renderReferenceImages();
   await saveState();
+}
+
+function clearImageComposerAfterSend(tab) {
+  if (!tab) return;
+  tab.references.forEach((reference) => {
+    if (reference.url) URL.revokeObjectURL(reference.url);
+  });
+  tab.references = [];
+  tab.prompt = "";
+
+  if (tab.id !== state.activeImageTabId) return;
+  UI.referenceInput.value = "";
+  UI.imagePrompt.value = "";
+  renderReferenceImages();
 }
 
 function createImageDownloadButton(turn) {
@@ -2348,6 +2709,9 @@ async function generateImage() {
   };
   const referenceFiles = activeImageTab.references.map((entry) => entry.file);
   activeImageTab.turns.push(requestTurn);
+  activeImageTab.sessionSaved = false;
+  if (activeImageTab.id === state.activeImageTabId) renderImageStage();
+  clearImageComposerAfterSend(activeImageTab);
 
   const controller = new AbortController();
   activeImageTab.controller = controller;
@@ -2411,6 +2775,7 @@ async function generateImage() {
   } finally {
     if (activeImageTab.controller === controller) activeImageTab.controller = null;
     activeImageTab.progressText = "";
+    activeImageTab.sessionSaved = false;
     setImageBusy(activeImageTab, false);
     await saveState();
   }
@@ -3110,6 +3475,8 @@ async function saveState() {
     [STORAGE_KEYS.imageSavedPrompts]: state.imageSavedPrompts,
     [STORAGE_KEYS.panelMode]: state.panelMode,
     [STORAGE_KEYS.verifiedModels]: state.verifiedModels,
+    [STORAGE_KEYS.chatComposerRatio]: state.chatComposerRatio,
+    [STORAGE_KEYS.imageComposerRatio]: state.imageComposerRatio,
     kc_tabs: tabs,
     kc_active_tab_id: state.activeTabId,
     kc_next_tab_id: state.nextTabId,
@@ -3132,6 +3499,8 @@ async function initializeState() {
     STORAGE_KEYS.imageSavedPrompts,
     STORAGE_KEYS.panelMode,
     STORAGE_KEYS.verifiedModels,
+    STORAGE_KEYS.chatComposerRatio,
+    STORAGE_KEYS.imageComposerRatio,
     "kc_tabs",
     "kc_active_tab_id",
     "kc_next_tab_id",
@@ -3184,6 +3553,8 @@ async function initializeState() {
   state.savedPrompts = Array.isArray(stored[STORAGE_KEYS.savedPrompts]) ? stored[STORAGE_KEYS.savedPrompts] : [];
   state.imageSavedPrompts = Array.isArray(stored[STORAGE_KEYS.imageSavedPrompts]) ? stored[STORAGE_KEYS.imageSavedPrompts] : [];
   state.panelMode = stored[STORAGE_KEYS.panelMode] || "sidepanel";
+  state.chatComposerRatio = normalizeComposerRatio(stored[STORAGE_KEYS.chatComposerRatio]);
+  state.imageComposerRatio = normalizeComposerRatio(stored[STORAGE_KEYS.imageComposerRatio]);
   // URL param is ground truth: no srcWindowId means we're in the sidepanel, not a popup.
   if (POPUP_SRC_WINDOW_ID === null) {
     state.panelMode = "sidepanel";
@@ -3364,8 +3735,7 @@ function getTabFullLabel(tab) {
   if (firstUser?.content) {
     return firstUser.content.trim().replace(/\s+/g, " ");
   }
-  const tabNumber = Math.max(tabs.findIndex((item) => item.id === tab.id) + 1, 1);
-  return t("new-tab-label", { number: String(tabNumber) });
+  return t("empty-tab-label");
 }
 
 function getTabLabel(tab) {
@@ -3375,7 +3745,8 @@ function getTabLabel(tab) {
 function renderTabBar() {
   const bar = document.getElementById("tabBar");
   if (!bar) return;
-  bar.innerHTML = "";
+  const tabBar = createScrollableTabBar(bar, addTab);
+  const strip = tabBar.strip;
 
   let dragSrcId = null;
 
@@ -3415,7 +3786,7 @@ function renderTabBar() {
     });
     btn.addEventListener("dragend", () => {
       btn.classList.remove("dragging");
-      bar.querySelectorAll(".tab-item").forEach(b => b.classList.remove("drag-over"));
+      strip.querySelectorAll(".tab-item").forEach(b => b.classList.remove("drag-over"));
     });
     btn.addEventListener("dragover", e => {
       e.preventDefault();
@@ -3437,17 +3808,9 @@ function renderTabBar() {
       saveState();
     });
 
-    bar.appendChild(btn);
+    strip.appendChild(btn);
   });
-
-  const addBtn = document.createElement("button");
-  addBtn.className = "tab-add";
-  addBtn.textContent = "+";
-  addBtn.title = t("new-tab");
-  addBtn.setAttribute("aria-label", t("new-tab"));
-  addBtn.setAttribute("data-i18n-title", "new-tab");
-  addBtn.addEventListener("click", addTab);
-  bar.appendChild(addBtn);
+  tabBar.finish();
 }
 
 // Inline-rename a tab: swap the label for a text input, commit on Enter/blur,
@@ -3698,8 +4061,6 @@ let promptManagerMode = "chat";
 
 function setImagePrompt(prompt) {
   UI.imagePrompt.value = prompt;
-  UI.imagePrompt.style.height = "auto";
-  UI.imagePrompt.style.height = `${Math.min(UI.imagePrompt.scrollHeight, 130)}px`;
   commitActiveImageTab();
   UI.imagePrompt.focus();
   saveState();
@@ -4336,12 +4697,29 @@ async function sendCombinedMessage(userMessage, group, srcTabId, requestModel) {
     ? createInitialUserRecord(userMessage, group, "combined")
     : { role: "user", content: userMessage, contextImageId: group.focusImageId || null };
 
+  if (isInitial) {
+    group.contextStartIndex = state.messages.length;
+    group.initialPrompt = userMessage;
+    group.initialMode = "combined";
+    group.scopeStartIndex = group.contextStartIndex;
+  }
+
   addMessage("user", userMessage, true, isInitial ? group.images : [], userRecord);
+  if (state.activeTabId === srcTabId) renderChatImageAttachment();
   showTypingIndicator();
   const response = await requestVision(apiMessages, requestModel);
   hideTypingIndicator();
   if (!response?.ok) {
-    if (state.activeTabId === srcTabId) renderMessages();
+    if (isInitial) {
+      group.contextStartIndex = null;
+      group.initialPrompt = "";
+      group.initialMode = null;
+      group.scopeStartIndex = null;
+    }
+    if (state.activeTabId === srcTabId) {
+      renderMessages();
+      renderChatImageAttachment();
+    }
     throw new Error(response?.error || "Unknown error");
   }
 
@@ -4349,10 +4727,6 @@ async function sendCombinedMessage(userMessage, group, srcTabId, requestModel) {
   const destinationMessages = state.activeTabId === srcTabId ? state.messages : srcTab?.messages;
   if (!destinationMessages) return;
   if (isInitial) {
-    group.contextStartIndex = destinationMessages.length;
-    group.initialPrompt = userMessage;
-    group.initialMode = "combined";
-    group.scopeStartIndex = group.contextStartIndex;
     assignAutoTabLabel(srcTab, group.images[0]?.name, userMessage);
   }
   if (srcTab) srcTab.activeImageGroup = serializeChatImageGroup(group);
@@ -4385,7 +4759,11 @@ async function sendMessage() {
     return;
   }
   const srcTabId = state.activeTabId;
-  const group = getChatImageGroup(srcTabId);
+  let group = getChatImageGroup(srcTabId);
+  if (!group?.images?.length) {
+    group = inferChatImageGroupFromMessages(state.messages);
+    if (group) chatImagesByTab.set(srcTabId, group);
+  }
   if (!group?.images?.length) {
     setStatus("error", t("error-no-analysis-image"));
     return;
@@ -4395,7 +4773,6 @@ async function sendMessage() {
   setChatComposerDisabled(true);
   setStatus("loading", t("status-vision-sending"));
   UI.messageInput.value = "";
-  UI.messageInput.style.height = "auto";
 
   try {
     if (group.contextStartIndex == null && group.analysisMode === "per-image") {
@@ -4405,6 +4782,9 @@ async function sendMessage() {
     }
     setStatus("ready", t("status-ready"));
   } catch (err) {
+    if (!UI.messageInput.value) {
+      UI.messageInput.value = userMessage;
+    }
     setStatus("error", t("error-send") + (err.message || String(err)));
   } finally {
     setChatComposerDisabled(false);
@@ -4482,8 +4862,6 @@ async function handleQuickQuestion(template) {
   }
 
   UI.messageInput.value = prompt;
-  UI.messageInput.style.height = "auto";
-  UI.messageInput.style.height = `${UI.messageInput.scrollHeight}px`;
   await sendMessage();
 }
 
@@ -4861,8 +5239,6 @@ function usePrompt(index, mode = "chat") {
     openCustomImageTemplate(prompt);
   } else {
     UI.messageInput.value = prompt;
-    UI.messageInput.style.height = "auto";
-    UI.messageInput.style.height = `${UI.messageInput.scrollHeight}px`;
     UI.messageInput.focus();
   }
   closeSavedPromptsModal();
@@ -4917,12 +5293,48 @@ function buildSessionMarkdown() {
   return lines.join("\n");
 }
 
-async function downloadSession() {
-  if (state.messages.length === 0) {
-    setStatus("error", t("status-session-empty"));
-    return;
-  }
-  const md = buildSessionMarkdown();
+function buildImageSessionMarkdown(tab) {
+  const lines = [];
+  const dateStr = new Date().toLocaleString();
+  const sessionTitle = String(getImageTabFullLabel(tab) || "").trim().replace(/\s+/g, " ");
+  lines.push(`# ${sessionTitle || "Image Chatter Session"}\n`);
+  lines.push(`**Date**: ${dateStr}  `);
+  lines.push(`**Model**: ${state.selectedGenerationModel}  `);
+  lines.push("\n---\n");
+
+  tab.turns.forEach((turn) => {
+    lines.push("## \u{1F464} User\n");
+    turn.referenceIds.forEach((imageId, index) => {
+      const image = chatImageAssets.get(imageId);
+      const fallbackName = `Reference image ${index + 1}`;
+      if (image?.dataUrl) {
+        const name = image.name || fallbackName;
+        lines.push(`<img src="${image.dataUrl}" alt="${escapeHtmlAttribute(name)}" style="max-width: 100%; height: auto;" />\n`);
+        lines.push(`_${escapeHtml(name)}_\n`);
+      } else {
+        lines.push(`_[Image unavailable: ${escapeHtml(fallbackName)}]_\n`);
+      }
+    });
+    lines.push(`${turn.prompt || ""}\n`);
+    lines.push(`_Size: ${escapeHtml(turn.size || "auto")} · Quality: ${escapeHtml(turn.quality || "auto")} · Format: ${escapeHtml((turn.format || "png").toUpperCase())}_\n`);
+    lines.push("---\n");
+
+    lines.push("## \u{1F916} Assistant\n");
+    const result = chatImageAssets.get(turn.resultId);
+    if (result?.dataUrl) {
+      const name = result.name || `generated.${turn.format === "jpeg" ? "jpeg" : "png"}`;
+      lines.push(`<img src="${result.dataUrl}" alt="${escapeHtmlAttribute(name)}" style="max-width: 100%; height: auto;" />\n`);
+      if (turn.revisedPrompt) lines.push(`_${escapeHtml(turn.revisedPrompt)}_\n`);
+    } else {
+      lines.push("_[Generated image unavailable]_\n");
+    }
+    lines.push("---\n");
+  });
+
+  return lines.join("\n");
+}
+
+async function downloadMarkdownSession(md, onSaved) {
   const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const ts = new Date().toISOString().slice(0, 19).replace("T", "_").replace(/:/g, "");
@@ -4956,7 +5368,7 @@ async function downloadSession() {
     });
 
     if (savedOk) {
-      state.sessionSaved = true;
+      await onSaved();
       await saveState();
       setStatus("ready", t("status-session-saved"));
     } else {
@@ -4966,6 +5378,37 @@ async function downloadSession() {
     setStatus("error", err.message || "Download failed");
   } finally {
     URL.revokeObjectURL(url);
+  }
+}
+
+async function downloadSession() {
+  if (state.messages.length === 0) {
+    setStatus("error", t("status-session-empty"));
+    return;
+  }
+  await downloadMarkdownSession(buildSessionMarkdown(), async () => {
+    state.sessionSaved = true;
+    const tab = tabs.find((item) => item.id === state.activeTabId);
+    if (tab) tab.sessionSaved = true;
+  });
+}
+
+async function downloadImageSession(tab = getActiveImageTab()) {
+  if (!tab || tab.turns.length === 0) {
+    setStatus("error", t("status-session-empty"));
+    return;
+  }
+  commitActiveImageTab();
+  await downloadMarkdownSession(buildImageSessionMarkdown(tab), async () => {
+    tab.sessionSaved = true;
+  });
+}
+
+async function downloadActiveSession() {
+  if (imageState.mode === "image") {
+    await downloadImageSession();
+  } else {
+    await downloadSession();
   }
 }
 
@@ -5020,8 +5463,9 @@ function setupEventHandlers() {
   });
 
   UI.budgetText.addEventListener("click", () => refreshBudget());
+  UI.updateDismissBtn.addEventListener("click", dismissExtensionUpdate);
   UI.panelModeBtn.addEventListener("click", togglePanelMode);
-  UI.saveSessionBtn.addEventListener("click", downloadSession);
+  UI.saveSessionBtn.addEventListener("click", downloadActiveSession);
   UI.clearBtn.addEventListener("click", clearConversation);
 
   UI.sendBtn.addEventListener("click", sendMessage);
@@ -5054,7 +5498,6 @@ function setupEventHandlers() {
     (selectImage ? UI.imageModeBtn : UI.chatModeBtn).focus();
   });
   UI.addReferenceBtn.addEventListener("click", () => UI.referenceInput.click());
-  UI.imageComposeToggle.addEventListener("click", toggleImageCompose);
   UI.referenceInput.addEventListener("change", async () => {
     const files = Array.from(UI.referenceInput.files || []);
     UI.referenceInput.value = "";
@@ -5172,11 +5615,6 @@ function setupEventHandlers() {
     }
   });
 
-  UI.messageInput.addEventListener("input", () => {
-    UI.messageInput.style.height = "auto";
-    UI.messageInput.style.height = `${UI.messageInput.scrollHeight}px`;
-  });
-
   UI.closeModelDiscoveryModal.addEventListener("click", closeModelDiscoveryModal);
   UI.modelDiscoveryModal.addEventListener("click", (event) => {
     if (event.target === UI.modelDiscoveryModal) closeModelDiscoveryModal();
@@ -5219,8 +5657,11 @@ function setupEventHandlers() {
 
 async function bootstrap() {
   setupTooltips();
+  renderInstalledVersion();
   await initializeState();
   setupEventHandlers();
+  setupLayoutResizers();
+  checkForExtensionUpdate().catch(() => {});
 
   if (!state.selectedApiKey) {
     await promptForApiKey(true);
