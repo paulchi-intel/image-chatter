@@ -12,7 +12,9 @@ const STORAGE_KEYS = {
   imageSavedPrompts: "imageSavedPrompts",
   panelMode: "panelMode",
   verifiedModels: "verifiedModels",
-  dismissedUpdateVersion: "dismissedUpdateVersion"
+  dismissedUpdateVersion: "dismissedUpdateVersion",
+  chatComposerRatio: "chatComposerRatio",
+  imageComposerRatio: "imageComposerRatio"
 };
 
 // Special sentinel value used as a model-selector option that triggers
@@ -50,7 +52,6 @@ const TRANSLATIONS = {
     "image-prompt-placeholder": "描述要生成的圖片...",
     "image-generate": "生成",
     "image-no-references": "尚未加入參考圖",
-    "image-new-tab-label": "圖片 {number}",
     "new-tab": "新增分頁",
     "tab-scroll-left": "向左捲動分頁",
     "tab-scroll-right": "向右捲動分頁",
@@ -67,6 +68,8 @@ const TRANSLATIONS = {
     "load-page": "載入網頁",
     "load-clipboard": "載入剪貼簿",
     "status-ready": "準備就緒",
+    "resize-chat-layout": "拖曳或使用方向鍵調整對話與輸入區比例",
+    "resize-image-layout": "拖曳或使用方向鍵調整生成內容與輸入區比例",
     "current-version": "目前版本 v{version}",
     "update-available": "Image Chatter v{version} 已可下載。",
     "update-download": "下載新版",
@@ -188,7 +191,6 @@ const TRANSLATIONS = {
     "dialog-cancel": "取消",
     "clipboard-tab-label": "剪貼簿內容",
     "empty-tab-label": "empty",
-    "new-tab-label": "新對話 {number}",
     "tab-rename-hint": "雙擊可重新命名"
   },
   "zh-CN": {
@@ -206,7 +208,6 @@ const TRANSLATIONS = {
     "image-prompt-placeholder": "描述要生成的图片...",
     "image-generate": "生成",
     "image-no-references": "尚未加入参考图",
-    "image-new-tab-label": "图片 {number}",
     "new-tab": "新建标签页",
     "tab-scroll-left": "向左滚动标签页",
     "tab-scroll-right": "向右滚动标签页",
@@ -223,6 +224,8 @@ const TRANSLATIONS = {
     "load-page": "载入网页",
     "load-clipboard": "载入剪贴板",
     "status-ready": "准备就绪",
+    "resize-chat-layout": "拖动或使用方向键调整对话与输入区比例",
+    "resize-image-layout": "拖动或使用方向键调整生成内容与输入区比例",
     "current-version": "当前版本 v{version}",
     "update-available": "Image Chatter v{version} 已可下载。",
     "update-download": "下载新版",
@@ -344,7 +347,6 @@ const TRANSLATIONS = {
     "dialog-cancel": "取消",
     "clipboard-tab-label": "剪贴板内容",
     "empty-tab-label": "empty",
-    "new-tab-label": "新对话 {number}",
     "tab-rename-hint": "双击可重新命名",
     "copy": "复制",
     "copied": "已复制"
@@ -364,7 +366,6 @@ const TRANSLATIONS = {
     "image-prompt-placeholder": "Describe the image...",
     "image-generate": "Generate",
     "image-no-references": "No reference images",
-    "image-new-tab-label": "Image {number}",
     "new-tab": "New tab",
     "tab-scroll-left": "Scroll tabs left",
     "tab-scroll-right": "Scroll tabs right",
@@ -381,6 +382,8 @@ const TRANSLATIONS = {
     "load-page": "Load Page",
     "load-clipboard": "Load Clipboard",
     "status-ready": "Ready",
+    "resize-chat-layout": "Drag or use the arrow keys to resize the conversation and composer",
+    "resize-image-layout": "Drag or use the arrow keys to resize the generation history and composer",
     "current-version": "Current version v{version}",
     "update-available": "Image Chatter v{version} is available.",
     "update-download": "Download update",
@@ -502,7 +505,6 @@ const TRANSLATIONS = {
     "dialog-cancel": "Cancel",
     "clipboard-tab-label": "Clipboard",
     "empty-tab-label": "empty",
-    "new-tab-label": "New chat {number}",
     "tab-rename-hint": "Double-click to rename",
     "copy": "Copy",
     "copied": "Copied"
@@ -612,6 +614,9 @@ const UI = {
   statusText: document.getElementById("statusText"),
   budgetText: document.getElementById("budgetText"),
   messagesContainer: document.getElementById("messagesContainer"),
+  chatContainer: document.querySelector(".chat-container"),
+  chatComposer: document.getElementById("chatComposer"),
+  chatLayoutResizer: document.getElementById("chatLayoutResizer"),
   messageInput: document.getElementById("messageInput"),
   sendBtn: document.getElementById("sendBtn"),
   attachChatImageBtn: document.getElementById("attachChatImageBtn"),
@@ -627,6 +632,8 @@ const UI = {
   imageModeBtn: document.getElementById("imageModeBtn"),
   chatPanel: document.getElementById("chatPanel"),
   imagePanel: document.getElementById("imagePanel"),
+  imageCompose: document.getElementById("imageCompose"),
+  imageLayoutResizer: document.getElementById("imageLayoutResizer"),
   imageTabBar: document.getElementById("imageTabBar"),
   imagePromptTools: document.getElementById("imagePromptTools"),
   imageStage: document.getElementById("imageStage"),
@@ -709,6 +716,8 @@ let state = {
   nextTabId: 1,
   activeImageTabId: 0,
   nextImageTabId: 1,
+  chatComposerRatio: null,
+  imageComposerRatio: null,
 };
 
 function createImageTab(id, saved = {}) {
@@ -1502,6 +1511,147 @@ async function dismissExtensionUpdate() {
   renderUpdateBanner();
 }
 
+const MIN_COMPOSER_RATIO = 0.15;
+const MAX_COMPOSER_RATIO = 0.65;
+const COMPOSER_RATIO_STEP = 0.05;
+
+function normalizeComposerRatio(value) {
+  const ratio = Number(value);
+  if (!Number.isFinite(ratio)) return null;
+  return Math.min(MAX_COMPOSER_RATIO, Math.max(MIN_COMPOSER_RATIO, ratio));
+}
+
+function getLayoutSplitHeight(config) {
+  const upperRect = config.upper.getBoundingClientRect();
+  const lowerRect = config.lower.getBoundingClientRect();
+  return Math.max(0, lowerRect.bottom - upperRect.top);
+}
+
+function getCurrentComposerRatio(config) {
+  const totalHeight = getLayoutSplitHeight(config);
+  if (!totalHeight) return normalizeComposerRatio(state[config.stateKey]) || config.defaultRatio;
+  return normalizeComposerRatio(config.lower.getBoundingClientRect().height / totalHeight) || config.defaultRatio;
+}
+
+function applyComposerRatio(config, value, persist = false) {
+  const ratio = normalizeComposerRatio(value);
+  if (ratio == null) return;
+  const totalHeight = getLayoutSplitHeight(config);
+  if (totalHeight > 0) config.lower.style.flexBasis = `${Math.round(totalHeight * ratio)}px`;
+  state[config.stateKey] = ratio;
+  const percent = Math.round(ratio * 100);
+  config.handle.setAttribute("aria-valuenow", String(percent));
+  config.handle.setAttribute("aria-valuetext", `${percent}%`);
+  if (persist) {
+    chrome.storage.local.set({ [config.storageKey]: ratio }).catch(() => {});
+  }
+}
+
+function setupLayoutResizer(config) {
+  if (!config.handle || !config.upper || !config.lower) return;
+  let dragging = false;
+  let pendingClientY = null;
+  let frameId = 0;
+
+  const ratioFromClientY = (clientY) => {
+    const upperRect = config.upper.getBoundingClientRect();
+    const lowerRect = config.lower.getBoundingClientRect();
+    const totalHeight = Math.max(1, lowerRect.bottom - upperRect.top);
+    return normalizeComposerRatio((lowerRect.bottom - clientY) / totalHeight);
+  };
+
+  const flushPointerUpdate = () => {
+    frameId = 0;
+    if (pendingClientY == null) return;
+    const ratio = ratioFromClientY(pendingClientY);
+    pendingClientY = null;
+    applyComposerRatio(config, ratio);
+  };
+
+  const queuePointerUpdate = (clientY) => {
+    pendingClientY = clientY;
+    if (!frameId) frameId = requestAnimationFrame(flushPointerUpdate);
+  };
+
+  const finishDragging = (event) => {
+    if (!dragging) return;
+    if (event?.clientY != null) pendingClientY = event.clientY;
+    if (frameId) cancelAnimationFrame(frameId);
+    flushPointerUpdate();
+    dragging = false;
+    config.handle.classList.remove("active");
+    document.body.classList.remove("resizing-layout");
+    applyComposerRatio(config, state[config.stateKey] || getCurrentComposerRatio(config), true);
+    if (event?.pointerId != null && config.handle.hasPointerCapture?.(event.pointerId)) {
+      config.handle.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  config.handle.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || !event.isPrimary || dragging) return;
+    event.preventDefault();
+    dragging = true;
+    config.handle.classList.add("active");
+    document.body.classList.add("resizing-layout");
+    config.handle.setPointerCapture(event.pointerId);
+    queuePointerUpdate(event.clientY);
+  });
+  config.handle.addEventListener("pointermove", (event) => {
+    if (dragging) queuePointerUpdate(event.clientY);
+  });
+  config.handle.addEventListener("pointerup", finishDragging);
+  config.handle.addEventListener("pointercancel", finishDragging);
+  config.handle.addEventListener("lostpointercapture", finishDragging);
+  window.addEventListener("blur", finishDragging);
+
+  config.handle.addEventListener("keydown", (event) => {
+    if (!["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const current = normalizeComposerRatio(state[config.stateKey]) || getCurrentComposerRatio(config);
+    const step = event.shiftKey ? COMPOSER_RATIO_STEP * 2 : COMPOSER_RATIO_STEP;
+    const next = event.key === "Home"
+      ? MIN_COMPOSER_RATIO
+      : event.key === "End"
+        ? MAX_COMPOSER_RATIO
+        : current + (event.key === "ArrowUp" ? step : -step);
+    applyComposerRatio(config, next, true);
+  });
+
+  const savedRatio = normalizeComposerRatio(state[config.stateKey]);
+  requestAnimationFrame(() => {
+    applyComposerRatio(config, savedRatio || getCurrentComposerRatio(config));
+  });
+
+  if (typeof ResizeObserver === "function") {
+    const observer = new ResizeObserver(() => {
+      const ratio = normalizeComposerRatio(state[config.stateKey]);
+      if (ratio != null && !dragging) applyComposerRatio(config, ratio);
+    });
+    observer.observe(config.container);
+  }
+}
+
+function setupLayoutResizers() {
+  setupLayoutResizer({
+    container: UI.chatContainer,
+    upper: UI.messagesContainer,
+    lower: UI.chatComposer,
+    handle: UI.chatLayoutResizer,
+    stateKey: "chatComposerRatio",
+    storageKey: STORAGE_KEYS.chatComposerRatio,
+    defaultRatio: 0.24
+  });
+  setupLayoutResizer({
+    container: UI.imagePanel,
+    upper: UI.imageStage,
+    lower: UI.imageCompose,
+    handle: UI.imageLayoutResizer,
+    stateKey: "imageComposerRatio",
+    storageKey: STORAGE_KEYS.imageComposerRatio,
+    defaultRatio: 0.22
+  });
+}
+
 function isValidApiKey(key) {
   return typeof key === "string" && key.trim().length > 0 && !key.trim().startsWith("pak_");
 }
@@ -1565,9 +1715,16 @@ function renderChatImageAttachment() {
     const preview = document.createElement("img");
     preview.src = image.dataUrl;
     preview.alt = image.name;
-    preview.title = t("open-image-tab");
-    preview.setAttribute("data-i18n-title", "open-image-tab");
+    preview.tabIndex = 0;
+    preview.setAttribute("role", "button");
+    preview.title = `${image.name}\n${t("open-image-tab")}`;
+    preview.setAttribute("aria-label", `${image.name}. ${t("open-image-tab")}`);
     preview.addEventListener("click", () => openMessageImageTab(image.id));
+    preview.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      openMessageImageTab(image.id);
+    });
 
     const name = document.createElement("span");
     name.className = "chat-attachment-name";
@@ -1873,10 +2030,7 @@ function getImageTabFullLabel(tab) {
   if (tab.customLabel) return tab.customLabel.trim().replace(/\s+/g, " ");
   if (tab.autoLabel) return tab.autoLabel.trim().replace(/\s+/g, " ");
   if (tab.prompt) return tab.prompt.trim().replace(/\s+/g, " ");
-  const tabNumber = Number.isInteger(tab.id) && tab.id >= 0
-    ? tab.id + 1
-    : Math.max(imageTabs.findIndex((item) => item === tab) + 1, 1);
-  return t("image-new-tab-label", { number: String(tabNumber) });
+  return t("empty-tab-label");
 }
 
 function startImageTabRename(tab, label, button) {
@@ -2399,7 +2553,6 @@ function clearImageComposerAfterSend(tab) {
   if (tab.id !== state.activeImageTabId) return;
   UI.referenceInput.value = "";
   UI.imagePrompt.value = "";
-  UI.imagePrompt.style.height = "auto";
   renderReferenceImages();
 }
 
@@ -3322,6 +3475,8 @@ async function saveState() {
     [STORAGE_KEYS.imageSavedPrompts]: state.imageSavedPrompts,
     [STORAGE_KEYS.panelMode]: state.panelMode,
     [STORAGE_KEYS.verifiedModels]: state.verifiedModels,
+    [STORAGE_KEYS.chatComposerRatio]: state.chatComposerRatio,
+    [STORAGE_KEYS.imageComposerRatio]: state.imageComposerRatio,
     kc_tabs: tabs,
     kc_active_tab_id: state.activeTabId,
     kc_next_tab_id: state.nextTabId,
@@ -3344,6 +3499,8 @@ async function initializeState() {
     STORAGE_KEYS.imageSavedPrompts,
     STORAGE_KEYS.panelMode,
     STORAGE_KEYS.verifiedModels,
+    STORAGE_KEYS.chatComposerRatio,
+    STORAGE_KEYS.imageComposerRatio,
     "kc_tabs",
     "kc_active_tab_id",
     "kc_next_tab_id",
@@ -3396,6 +3553,8 @@ async function initializeState() {
   state.savedPrompts = Array.isArray(stored[STORAGE_KEYS.savedPrompts]) ? stored[STORAGE_KEYS.savedPrompts] : [];
   state.imageSavedPrompts = Array.isArray(stored[STORAGE_KEYS.imageSavedPrompts]) ? stored[STORAGE_KEYS.imageSavedPrompts] : [];
   state.panelMode = stored[STORAGE_KEYS.panelMode] || "sidepanel";
+  state.chatComposerRatio = normalizeComposerRatio(stored[STORAGE_KEYS.chatComposerRatio]);
+  state.imageComposerRatio = normalizeComposerRatio(stored[STORAGE_KEYS.imageComposerRatio]);
   // URL param is ground truth: no srcWindowId means we're in the sidepanel, not a popup.
   if (POPUP_SRC_WINDOW_ID === null) {
     state.panelMode = "sidepanel";
@@ -3576,8 +3735,7 @@ function getTabFullLabel(tab) {
   if (firstUser?.content) {
     return firstUser.content.trim().replace(/\s+/g, " ");
   }
-  const tabNumber = Math.max(tabs.findIndex((item) => item.id === tab.id) + 1, 1);
-  return t("new-tab-label", { number: String(tabNumber) });
+  return t("empty-tab-label");
 }
 
 function getTabLabel(tab) {
@@ -3903,8 +4061,6 @@ let promptManagerMode = "chat";
 
 function setImagePrompt(prompt) {
   UI.imagePrompt.value = prompt;
-  UI.imagePrompt.style.height = "auto";
-  UI.imagePrompt.style.height = `${Math.min(UI.imagePrompt.scrollHeight, 130)}px`;
   commitActiveImageTab();
   UI.imagePrompt.focus();
   saveState();
@@ -4617,7 +4773,6 @@ async function sendMessage() {
   setChatComposerDisabled(true);
   setStatus("loading", t("status-vision-sending"));
   UI.messageInput.value = "";
-  UI.messageInput.style.height = "auto";
 
   try {
     if (group.contextStartIndex == null && group.analysisMode === "per-image") {
@@ -4629,8 +4784,6 @@ async function sendMessage() {
   } catch (err) {
     if (!UI.messageInput.value) {
       UI.messageInput.value = userMessage;
-      UI.messageInput.style.height = "auto";
-      UI.messageInput.style.height = `${UI.messageInput.scrollHeight}px`;
     }
     setStatus("error", t("error-send") + (err.message || String(err)));
   } finally {
@@ -4709,8 +4862,6 @@ async function handleQuickQuestion(template) {
   }
 
   UI.messageInput.value = prompt;
-  UI.messageInput.style.height = "auto";
-  UI.messageInput.style.height = `${UI.messageInput.scrollHeight}px`;
   await sendMessage();
 }
 
@@ -5088,8 +5239,6 @@ function usePrompt(index, mode = "chat") {
     openCustomImageTemplate(prompt);
   } else {
     UI.messageInput.value = prompt;
-    UI.messageInput.style.height = "auto";
-    UI.messageInput.style.height = `${UI.messageInput.scrollHeight}px`;
     UI.messageInput.focus();
   }
   closeSavedPromptsModal();
@@ -5466,11 +5615,6 @@ function setupEventHandlers() {
     }
   });
 
-  UI.messageInput.addEventListener("input", () => {
-    UI.messageInput.style.height = "auto";
-    UI.messageInput.style.height = `${UI.messageInput.scrollHeight}px`;
-  });
-
   UI.closeModelDiscoveryModal.addEventListener("click", closeModelDiscoveryModal);
   UI.modelDiscoveryModal.addEventListener("click", (event) => {
     if (event.target === UI.modelDiscoveryModal) closeModelDiscoveryModal();
@@ -5516,6 +5660,7 @@ async function bootstrap() {
   renderInstalledVersion();
   await initializeState();
   setupEventHandlers();
+  setupLayoutResizers();
   checkForExtensionUpdate().catch(() => {});
 
   if (!state.selectedApiKey) {
